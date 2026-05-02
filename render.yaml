@@ -1,0 +1,44 @@
+databases:
+  - name: habitkids-db
+    plan: free
+    databaseName: habitkids
+    user: habitkids
+
+services:
+  - type: web
+    name: habitkids-api
+    env: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: habitkids-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_URL
+        value: https://habitkids-app.onrender.com
+      - key: VAPID_PUBLIC_KEY
+        value: BELky-AiZ493-wF4l4dQ83wLg71vbztRHxFOptjTe7IgX-KvebKB5h7Y6pDqpb9YzhMvwR7x0IR1CYMScYaN6pk
+      - key: VAPID_PRIVATE_KEY
+        value: PXI_9Rtw1FFXUhoc_k_iTBI03EKaCC-FM9XsW1eOsVg
+
+  - type: web
+    name: habitkids-app
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://habitkids-api.onrender.com/api

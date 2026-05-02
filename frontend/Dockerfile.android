@@ -1,0 +1,43 @@
+FROM eclipse-temurin:21-jdk-jammy
+
+# Install system deps + Node.js
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends wget unzip curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Android SDK setup
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+# Download Android command-line tools
+RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
+    wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+        -O /tmp/cmdtools.zip && \
+    unzip -q /tmp/cmdtools.zip -d /tmp && \
+    mv /tmp/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest && \
+    rm /tmp/cmdtools.zip
+
+# Accept licenses and install SDK packages
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true
+RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+# Install Capacitor Android library (via npm, no build scripts needed)
+WORKDIR /project
+RUN npm init -y && \
+    npm install @capacitor/android@8.3.1 --ignore-scripts --no-fund --no-audit --loglevel error
+
+# Cache Gradle distribution before copying project (faster rebuilds)
+COPY android/gradle/ ./android/gradle/
+COPY android/gradlew ./android/gradlew
+RUN chmod +x ./android/gradlew && \
+    cd android && ./gradlew --version --no-daemon 2>&1 | tail -3 || true
+
+# Copy full Android project
+COPY android/ ./android/
+
+# Build debug APK
+WORKDIR /project/android
+RUN ./gradlew assembleDebug --no-daemon --no-build-cache 2>&1

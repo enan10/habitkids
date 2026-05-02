@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: #FFF9F0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  margin: 0;
+}
+
+button { cursor: pointer; border: none; background: none; }

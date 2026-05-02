@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  children           Child[]
+  pushSubscriptions  PushSubscription[]
+}
+
+enum Plan {
+  FREE
+  PREMIUM
+}
+
+model Child {
+  id           String            @id @default(uuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  birthDate    DateTime?
+  avatarEmoji  String            @default("🧒")
+  avatarColor  String            @default("#FF6B6B")
+  xp           Int               @default(0)
+  level        Int               @default(1)
+  streakDays   Int               @default(0)
+  lastActiveAt DateTime?
+  createdAt    DateTime          @default(now())
+  habits                 Habit[]
+  completions            HabitCompletion[]
+  rewards                Reward[]
+  badges                 ChildBadge[]
+  notificationSchedules  NotificationSchedule[]
+}
+
+model Habit {
+  id          String            @id @default(uuid())
+  childId     String
+  child       Child             @relation(fields: [childId], references: [id], onDelete: Cascade)
+  title       String
+  emoji       String
+  color       String            @default("#4ECDC4")
+  frequency   Frequency         @default(DAILY)
+  daysOfWeek  Int[]     // [0..6] 0=Sun, 1=Mon, ..., 6=Sat. Empty = all days for DAILY
+  timeOfDay   TimeOfDay         @default(ANYTIME)
+  pointValue  Int               @default(10)
+  isActive    Boolean           @default(true)
+  order       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  completions HabitCompletion[]
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+}
+
+enum TimeOfDay {
+  MORNING
+  AFTERNOON
+  EVENING
+  ANYTIME
+}
+
+model HabitCompletion {
+  id           String   @id @default(uuid())
+  habitId      String
+  habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  childId      String
+  child        Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  completedAt  DateTime @default(now())
+  date         String
+  pointsEarned Int
+
+  @@unique([habitId, date])
+}
+
+model Reward {
+  id         String     @id @default(uuid())
+  childId    String
+  child      Child      @relation(fields: [childId], references: [id], onDelete: Cascade)
+  title      String
+  emoji      String
+  pointCost  Int
+  isUnlocked Boolean    @default(false)
+  unlockedAt DateTime?
+  type       RewardType @default(PHYSICAL)
+  createdAt  DateTime   @default(now())
+}
+
+enum RewardType {
+  DIGITAL
+  PHYSICAL
+  PRIVILEGE
+}
+
+model ChildBadge {
+  id       String   @id @default(uuid())
+  childId  String
+  child    Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  code     String
+  earnedAt DateTime @default(now())
+
+  @@unique([childId, code])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
+model NotificationSchedule {
+  id        String  @id @default(uuid())
+  childId   String
+  child     Child   @relation(fields: [childId], references: [id], onDelete: Cascade)
+  hour      Int
+  minute    Int
+  label     String  @default("Rappel habitudes")
+  isEnabled Boolean @default(true)
+  createdAt DateTime @default(now())
+}

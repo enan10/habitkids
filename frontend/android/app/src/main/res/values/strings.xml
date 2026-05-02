@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HabitKids</string>
+    <string name="title_activity_main">HabitKids</string>
+    <string name="package_name">ma.habitkids.app</string>
+    <string name="custom_url_scheme">ma.habitkids.app</string>
+</resources>
