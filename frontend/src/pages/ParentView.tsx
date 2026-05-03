@@ -30,13 +30,13 @@ interface Reward {
 }
 
 const WEEK_DAYS = [
-  { label: 'Lundi',    short: 'L', day: 1 },
-  { label: 'Mardi',    short: 'M', day: 2 },
-  { label: 'Mercredi', short: 'M', day: 3 },
-  { label: 'Jeudi',    short: 'J', day: 4 },
-  { label: 'Vendredi', short: 'V', day: 5 },
-  { label: 'Samedi',   short: 'S', day: 6 },
-  { label: 'Dimanche', short: 'D', day: 0 },
+  { label: 'Lundi',    short: 'Lu', day: 1 },
+  { label: 'Mardi',    short: 'Ma', day: 2 },
+  { label: 'Mercredi', short: 'Me', day: 3 },
+  { label: 'Jeudi',    short: 'Je', day: 4 },
+  { label: 'Vendredi', short: 'Ve', day: 5 },
+  { label: 'Samedi',   short: 'Sa', day: 6 },
+  { label: 'Dimanche', short: 'Di', day: 0 },
 ]
 
 const PRESET_HABITS = [
@@ -496,7 +496,7 @@ export default function ParentView() {
                                   ? 'Quotidien'
                                   : (habit.daysOfWeek ?? [])
                                       .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
-                                      .map((d: number) => ['D','L','M','M','J','V','S'][d])
+                                      .map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d])
                                       .join(' ')}
                               </span>
                             </div>

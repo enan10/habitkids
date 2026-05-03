@@ -19,15 +19,19 @@ export const CATEGORIES = [
 ]
 
 const DAYS = [
-  { label: 'L', day: 1 }, { label: 'M', day: 2 }, { label: 'M', day: 3 },
-  { label: 'J', day: 4 }, { label: 'V', day: 5 }, { label: 'S', day: 6 },
-  { label: 'D', day: 0 },
+  { label: 'Lu', full: 'Lundi',    day: 1 },
+  { label: 'Ma', full: 'Mardi',    day: 2 },
+  { label: 'Me', full: 'Mercredi', day: 3 },
+  { label: 'Je', full: 'Jeudi',    day: 4 },
+  { label: 'Ve', full: 'Vendredi', day: 5 },
+  { label: 'Sa', full: 'Samedi',   day: 6 },
+  { label: 'Di', full: 'Dimanche', day: 0 },
 ]
 
 const QUICK_SELECT = [
-  { label: 'Tous',    days: [1, 2, 3, 4, 5, 6, 0] },
-  { label: 'Lun–Ven', days: [1, 2, 3, 4, 5] },
-  { label: 'Sam–Dim', days: [6, 0] },
+  { label: 'Tous les jours', days: [1, 2, 3, 4, 5, 6, 0] },
+  { label: 'Lun – Ven',      days: [1, 2, 3, 4, 5] },
+  { label: 'Week-end',       days: [6, 0] },
 ]
 
 interface Props {
@@ -60,7 +64,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Pr
     const n = form.daysOfWeek.length
     if (n === 0) return 'Aucun jour sélectionné'
     if (n === 7) return 'Tous les jours'
-    const names = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+    const names = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa']
     return form.daysOfWeek
       .slice()
       .sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
