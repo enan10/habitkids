@@ -6,6 +6,7 @@ export interface Habit {
   title: string
   emoji: string
   color: string
+  category: string
   pointValue: number
   frequency: string
   timeOfDay: string

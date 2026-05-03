@@ -62,6 +62,11 @@ export default async function pushRoutes(app: FastifyInstance) {
         where: { id: body.childId, userId: request.userId },
       })
       if (!child) return reply.code(403).send({ error: 'Non autorisé' })
+      const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
+      if (user?.plan === 'FREE') {
+        const count = await app.prisma.notificationSchedule.count({ where: { childId: body.childId } })
+        if (count >= 1) return reply.code(403).send({ error: 'Maximum 1 rappel en plan gratuit', upgrade: true })
+      }
       return app.prisma.notificationSchedule.create({ data: body })
     })
 

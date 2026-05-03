@@ -50,6 +50,7 @@ model Habit {
   title       String
   emoji       String
   color       String            @default("#4ECDC4")
+  category    String            @default("GENERAL")
   frequency   Frequency         @default(DAILY)
   daysOfWeek  Int[]     // [0..6] 0=Sun, 1=Mon, ..., 6=Sat. Empty = all days for DAILY
   timeOfDay   TimeOfDay         @default(ANYTIME)

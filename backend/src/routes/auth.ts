@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { requireAuth } from '../middleware/auth'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -35,5 +36,10 @@ export default async function authRoutes(app: FastifyInstance) {
     }
     const token = app.jwt.sign({ userId: user.id, email: user.email })
     return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan } }
+  })
+
+  app.post('/upgrade', { preHandler: requireAuth }, async (request: any) => {
+    await app.prisma.user.update({ where: { id: request.userId }, data: { plan: 'PREMIUM' } })
+    return { success: true, plan: 'PREMIUM' }
   })
 }

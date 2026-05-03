@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, Reorder } from 'framer-motion'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
-import HabitForm from '../components/parent/HabitForm'
+import HabitForm, { CATEGORIES } from '../components/parent/HabitForm'
 import StatsView from '../components/parent/StatsView'
 import AvatarPicker from '../components/parent/AvatarPicker'
 import NotificationSettings from '../components/parent/NotificationSettings'
+import UpgradeModal from '../components/parent/UpgradeModal'
 
 interface Child {
   id: string
@@ -28,9 +29,52 @@ interface Reward {
   type: string
 }
 
+const WEEK_DAYS = [
+  { label: 'Lundi',    short: 'L', day: 1 },
+  { label: 'Mardi',    short: 'M', day: 2 },
+  { label: 'Mercredi', short: 'M', day: 3 },
+  { label: 'Jeudi',    short: 'J', day: 4 },
+  { label: 'Vendredi', short: 'V', day: 5 },
+  { label: 'Samedi',   short: 'S', day: 6 },
+  { label: 'Dimanche', short: 'D', day: 0 },
+]
+
+const PRESET_HABITS = [
+  { title: 'Se brosser les dents',        emoji: '🦷', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se laver les mains',          emoji: '🧼', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Prendre une douche',          emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se coiffer',                  emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
+  { title: 'Lire 15 minutes',             emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire ses devoirs',           emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Réviser ses leçons',          emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Apprendre un mot nouveau',    emoji: '🔤', category: 'EDUCATION',    color: '#FF9F43', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire du sport 30 min',       emoji: '🏃', category: 'SPORT',        color: '#1DD1A1', pointValue: 20, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Marcher 10 minutes',          emoji: '🚶', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire des étirements',        emoji: '🧘', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Manger des légumes',          emoji: '🥗', category: 'ALIMENTATION', color: '#FECA57', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Boire 8 verres d\'eau',       emoji: '💧', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Prendre le petit-déjeuner',   emoji: '🥣', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se coucher à l\'heure',       emoji: '😴', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Éteindre les écrans à 20h',   emoji: '📵', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Dessiner ou colorier',        emoji: '🎨', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Jouer d\'un instrument',      emoji: '🎵', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire son lit',               emoji: '🛏️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ranger sa chambre',           emoji: '🧹', category: 'MENAGE',       color: '#48DBFB', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Aider à mettre la table',     emoji: '🍽️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Arroser les plantes',         emoji: '🌿', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [1,3,5] },
+  { title: 'Sortir dehors 20 min',        emoji: '🌳', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Dire merci et s\'il te plaît',emoji: '🙏', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Appeler un ami ou la famille',emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
+]
+
+function getCategoryInfo(id: string) {
+  return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
+}
+
 export default function ParentView() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const isPremium = user?.plan === 'PREMIUM'
   const [children, setChildren] = useState<Child[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tab, setTab] = useState<'habits' | 'stats' | 'rewards' | 'notifications'>('habits')
@@ -43,6 +87,13 @@ export default function ParentView() {
   const [editingAvatar, setEditingAvatar] = useState(false)
   const [habitsList, setHabitsList] = useState<any[]>([])
   const habitsListRef = useRef<any[]>([])
+  const [habitsView, setHabitsView] = useState<'list' | 'parjour'>('list')
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
+  const [addingPreset, setAddingPreset] = useState<string | null>(null)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [addForDay, setAddForDay] = useState<number | null>(null)
 
   const fetchChildren = async () => {
     const res = await api.get('/children')
@@ -73,6 +124,22 @@ export default function ParentView() {
 
   const activeChild = children.find(c => c.id === activeId)
 
+  const usedCategories = useMemo(() => {
+    const cats = new Set((activeChild?.habits ?? []).map((h: any) => h.category || 'GENERAL'))
+    return Array.from(cats) as string[]
+  }, [activeChild?.habits])
+
+  const filteredHabits = useMemo(() => {
+    if (categoryFilter === 'ALL') return habitsList
+    return habitsList.filter(h => (h.category || 'GENERAL') === categoryFilter)
+  }, [habitsList, categoryFilter])
+
+  const habitsForDay = (day: number) => {
+    return (activeChild?.habits ?? [])
+      .filter((h: any) => (h.daysOfWeek ?? []).includes(day))
+      .filter((h: any) => categoryFilter === 'ALL' || (h.category || 'GENERAL') === categoryFilter)
+  }
+
   const addChild = async (e: React.FormEvent) => {
     e.preventDefault()
     await api.post('/children', { name: newChildName, avatarEmoji: '🧒', avatarColor: '#FF6B6B' })
@@ -86,12 +153,45 @@ export default function ParentView() {
     fetchChildren()
   }
 
+  const removeHabitFromDay = async (habitId: string, day: number, currentDays: number[]) => {
+    const newDays = currentDays.filter(d => d !== day)
+    if (newDays.length === 0) {
+      await api.delete(`/habits/${habitId}`)
+    } else {
+      const frequency = newDays.length === 7 ? 'DAILY' : 'WEEKLY'
+      await api.patch(`/habits/${habitId}`, { daysOfWeek: newDays, frequency })
+    }
+    fetchChildren()
+  }
+
+  const addPresetHabit = async (preset: typeof PRESET_HABITS[0]) => {
+    if (!activeId) return
+    setAddingPreset(preset.title)
+    try {
+      // If adding from a specific day, use only that day
+      const daysOfWeek = addForDay !== null ? [addForDay] : preset.daysOfWeek
+      const frequency = daysOfWeek.length === 7 ? 'DAILY' : 'WEEKLY'
+      await api.post('/habits', { ...preset, daysOfWeek, frequency, childId: activeId })
+      fetchChildren()
+    } catch (err: any) {
+      if (err.response?.data?.upgrade || err.response?.data?.error?.includes('Maximum')) setShowUpgrade(true)
+      else alert(err.response?.data?.error || 'Erreur')
+    } finally {
+      setAddingPreset(null)
+    }
+  }
+
   const addReward = async (e: React.FormEvent) => {
     e.preventDefault()
-    await api.post('/rewards', { ...rewardForm, childId: activeId, type: 'PHYSICAL' })
-    setRewardForm({ title: '', emoji: '🎁', pointCost: 50 })
-    setShowRewardForm(false)
-    if (activeId) fetchRewards(activeId)
+    try {
+      await api.post('/rewards', { ...rewardForm, childId: activeId, type: 'PHYSICAL' })
+      setRewardForm({ title: '', emoji: '🎁', pointCost: 50 })
+      setShowRewardForm(false)
+      if (activeId) fetchRewards(activeId)
+    } catch (err: any) {
+      if (err.response?.data?.upgrade) { setShowRewardForm(false); setShowUpgrade(true) }
+      else alert(err.response?.data?.error || 'Erreur')
+    }
   }
 
   const unlockReward = async (rewardId: string) => {
@@ -108,12 +208,25 @@ export default function ParentView() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+
       <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-black text-gray-800">👨‍👩‍👧 Espace Parent</h1>
           <p className="text-sm text-gray-500 font-semibold">{user?.name}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {!isPremium && (
+            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowUpgrade(true)}
+              className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-2 rounded-xl text-xs">
+              ⭐ Premium
+            </motion.button>
+          )}
+          {isPremium && (
+            <span className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-1.5 rounded-xl text-xs">
+              ✨ Premium
+            </span>
+          )}
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/child')}
             className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
             👶 Vue enfant
@@ -196,56 +309,266 @@ export default function ParentView() {
 
             {tab === 'habits' && (
               <div>
+                {/* Header row */}
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-black text-gray-700">Habitudes ({activeChild.habits?.length ?? 0}/5)</h3>
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowHabitForm(true)}
-                    className="bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
-                    + Ajouter
-                  </motion.button>
+                  <div className="flex gap-2">
+                    <div className="flex bg-gray-100 rounded-xl overflow-hidden text-xs font-bold">
+                      <button
+                        onClick={() => setHabitsView('list')}
+                        className={`px-3 py-2 transition-all ${habitsView === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}
+                      >
+                        📋 Liste
+                      </button>
+                      <button
+                        onClick={() => setHabitsView('parjour')}
+                        className={`px-3 py-2 transition-all ${habitsView === 'parjour' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}
+                      >
+                        📅 Par jour
+                      </button>
+                    </div>
+                    <motion.button whileTap={{ scale: 0.95 }}
+                      onClick={() => { setAddForDay(null); setShowSuggestions(v => !v); setShowHabitForm(false) }}
+                      className="bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
+                      + Ajouter
+                    </motion.button>
+                  </div>
                 </div>
-                <Reorder.Group
-                  axis="y"
-                  values={habitsList}
-                  onReorder={newList => {
-                    setHabitsList(newList)
-                    habitsListRef.current = newList
-                  }}
-                  className="space-y-2"
-                >
-                  {habitsList.map(habit => (
-                    <Reorder.Item
-                      key={habit.id}
-                      value={habit}
-                      onDragEnd={() => saveHabitOrder(habitsListRef.current)}
-                      className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3 cursor-grab active:cursor-grabbing"
-                    >
-                      <span className="text-gray-300 text-lg select-none">⠿</span>
-                      <span className="text-2xl">{habit.emoji}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-800">{habit.title}</p>
-                        <p className="text-sm text-gray-500">
-                          ⭐ {habit.pointValue} pts ·{' '}
-                          {habit.frequency === 'DAILY'
-                            ? 'Quotidien'
-                            : habit.daysOfWeek?.length === 7
-                            ? 'Hebdo (tous les jours)'
-                            : `Hebdo (${(habit.daysOfWeek ?? [])
-                                .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
-                                .map((d: number) => ['D','L','M','M','J','V','S'][d])
-                                .join(' ')})`}
-                        </p>
+
+                {/* Add panel: suggestions + custom form toggle */}
+                {(showSuggestions || showHabitForm) && (
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                    className="bg-orange-50 border-2 border-kids-orange/30 rounded-2xl p-4 mb-4">
+                    {addForDay !== null && (
+                      <div className="flex items-center gap-2 mb-3 bg-kids-blue/10 rounded-xl px-3 py-2">
+                        <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">
+                          {WEEK_DAYS.find(d => d.day === addForDay)?.short}
+                        </span>
+                        <span className="text-sm font-bold text-kids-blue">
+                          Habitude pour {WEEK_DAYS.find(d => d.day === addForDay)?.label} uniquement
+                        </span>
+                        <button onClick={() => setAddForDay(null)} className="ml-auto text-xs text-gray-400 font-bold">Tous les jours</button>
                       </div>
-                      <button onClick={() => deleteHabit(habit.id)} className="text-red-400 hover:text-red-600 font-bold p-2 text-xl">🗑️</button>
-                    </Reorder.Item>
-                  ))}
-                </Reorder.Group>
-                {showHabitForm && (
-                  <HabitForm childId={activeChild.id} onSave={() => { setShowHabitForm(false); fetchChildren() }} onCancel={() => setShowHabitForm(false)} />
+                    )}
+
+                    {/* Tabs inside the panel */}
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        onClick={() => { setShowSuggestions(true); setShowHabitForm(false) }}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                          showSuggestions ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'
+                        }`}>
+                        💡 Suggestions
+                      </button>
+                      <button
+                        onClick={() => { setShowHabitForm(true); setShowSuggestions(false) }}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                          showHabitForm ? 'bg-kids-teal text-white border-kids-teal' : 'bg-white text-gray-500 border-gray-200'
+                        }`}>
+                        ✏️ Personnalisée
+                      </button>
+                      <button
+                        onClick={() => { setShowSuggestions(false); setShowHabitForm(false) }}
+                        className="px-3 py-2 bg-white text-gray-400 border-2 border-gray-200 rounded-xl font-bold text-sm">
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Suggestions list */}
+                    {showSuggestions && (
+                      <>
+                        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                          <button onClick={() => setSuggestCatFilter('ALL')}
+                            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
+                            Tous
+                          </button>
+                          {CATEGORIES.map(cat => (
+                            <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
+                              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
+                              {cat.emoji} {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                          {PRESET_HABITS
+                            .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
+                            .map(preset => {
+                              const cat = getCategoryInfo(preset.category)
+                              const alreadyAdded = (activeChild.habits ?? []).some((h: any) => h.title === preset.title)
+                              return (
+                                <div key={preset.title}
+                                  className={`flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 shadow-sm ${alreadyAdded ? 'opacity-50' : ''}`}>
+                                  <span className="text-xl">{preset.emoji}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
+                                    <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
+                                  </div>
+                                  {alreadyAdded ? (
+                                    <span className="text-green-400 font-bold">✓</span>
+                                  ) : (
+                                    <motion.button whileTap={{ scale: 0.9 }}
+                                      disabled={addingPreset === preset.title}
+                                      onClick={() => addPresetHabit(preset)}
+                                      className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow disabled:opacity-50">
+                                      {addingPreset === preset.title ? '⏳' : '+'}
+                                    </motion.button>
+                                  )}
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Custom form */}
+                    {showHabitForm && (
+                      <div className="-mx-4 -mb-4">
+                        <HabitForm
+                          childId={activeChild.id}
+                          defaultDays={addForDay !== null ? [addForDay] : undefined}
+                          onSave={() => { setShowHabitForm(false); setShowSuggestions(false); setAddForDay(null); fetchChildren() }}
+                          onCancel={() => { setShowHabitForm(false); setShowSuggestions(true) }}
+                        />
+                      </div>
+                    )}
+                  </motion.div>
                 )}
+
+                {/* Category filter chips */}
+                {usedCategories.length > 1 && (
+                  <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setCategoryFilter('ALL')}
+                      className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
+                        categoryFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    {usedCategories.map(catId => {
+                      const cat = getCategoryInfo(catId)
+                      return (
+                        <button
+                          key={catId}
+                          onClick={() => setCategoryFilter(catId)}
+                          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
+                            categoryFilter === catId ? 'bg-kids-blue text-white border-kids-blue' : 'bg-white text-gray-500 border-gray-200'
+                          }`}
+                        >
+                          {cat.emoji} {cat.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* List view */}
+                {habitsView === 'list' && (
+                  <Reorder.Group
+                    axis="y"
+                    values={filteredHabits}
+                    onReorder={newList => {
+                      setHabitsList(newList)
+                      habitsListRef.current = newList
+                    }}
+                    className="space-y-2"
+                  >
+                    {filteredHabits.map(habit => {
+                      const cat = getCategoryInfo(habit.category || 'GENERAL')
+                      return (
+                        <Reorder.Item
+                          key={habit.id}
+                          value={habit}
+                          onDragEnd={() => saveHabitOrder(habitsListRef.current)}
+                          className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3 cursor-grab active:cursor-grabbing"
+                        >
+                          <span className="text-gray-300 text-lg select-none">⠿</span>
+                          <span className="text-2xl">{habit.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-800 truncate">{habit.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                {cat.emoji} {cat.label}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                ⭐ {habit.pointValue} ·{' '}
+                                {(habit.daysOfWeek ?? []).length === 7
+                                  ? 'Quotidien'
+                                  : (habit.daysOfWeek ?? [])
+                                      .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
+                                      .map((d: number) => ['D','L','M','M','J','V','S'][d])
+                                      .join(' ')}
+                              </span>
+                            </div>
+                          </div>
+                          <button onClick={() => deleteHabit(habit.id)} className="text-red-400 hover:text-red-600 font-bold p-2 text-xl">🗑️</button>
+                        </Reorder.Item>
+                      )
+                    })}
+                  </Reorder.Group>
+                )}
+
+                {/* Par jour view */}
+                {habitsView === 'parjour' && (
+                  <div className="space-y-3">
+                    {WEEK_DAYS.map(({ label, short, day }) => {
+                      const dayHabits = habitsForDay(day)
+                      return (
+                        <div key={day} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
+                            <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">
+                              {short}
+                            </span>
+                            <span className="font-bold text-gray-700 text-sm">{label}</span>
+                            <span className="text-xs text-gray-400 font-semibold">{dayHabits.length} habitude{dayHabits.length !== 1 ? 's' : ''}</span>
+                            <motion.button
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => {
+                                setAddForDay(day)
+                                setShowSuggestions(true)
+                                setShowHabitForm(false)
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                              }}
+                              className="ml-auto w-7 h-7 bg-kids-teal text-white font-black text-base rounded-full flex items-center justify-center shadow-sm">
+                              +
+                            </motion.button>
+                          </div>
+                          {dayHabits.length === 0 ? (
+                            <p className="px-4 py-3 text-sm text-gray-400 italic">Aucune habitude ce jour</p>
+                          ) : (
+                            <div className="divide-y divide-gray-50">
+                              {dayHabits.map((habit: any) => {
+                                const cat = getCategoryInfo(habit.category || 'GENERAL')
+                                return (
+                                  <div key={habit.id} className="flex items-center gap-3 px-4 py-2.5">
+                                    <span className="text-xl">{habit.emoji}</span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                                      <span className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {habit.pointValue}</span>
+                                    </div>
+                                    <button onClick={() => removeHabitFromDay(habit.id, day, habit.daysOfWeek ?? [])} className="text-red-300 hover:text-red-500 p-1">🗑️</button>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
               </div>
             )}
 
-            {tab === 'stats' && <StatsView childId={activeChild.id} />}
+            {tab === 'stats' && (
+              <StatsView
+                childId={activeChild.id}
+                childName={activeChild.name}
+                isPremium={isPremium}
+                onUpgrade={() => setShowUpgrade(true)}
+              />
+            )}
             {tab === 'notifications' && <NotificationSettings childId={activeChild.id} />}
 
             {tab === 'rewards' && (

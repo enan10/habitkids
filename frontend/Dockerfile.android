@@ -3,7 +3,7 @@ FROM eclipse-temurin:21-jdk-jammy
 # Install system deps + Node.js
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends wget unzip curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
@@ -12,7 +12,6 @@ ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV ANDROID_HOME=/opt/android-sdk
 ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
 
-# Download Android command-line tools
 RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
     wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
         -O /tmp/cmdtools.zip && \
@@ -20,24 +19,37 @@ RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
     mv /tmp/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest && \
     rm /tmp/cmdtools.zip
 
-# Accept licenses and install SDK packages
 RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true
 RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
-# Install Capacitor Android library (via npm, no build scripts needed)
+# === STEP 1: Install npm deps (cached layer) ===
 WORKDIR /project
-RUN npm init -y && \
-    npm install @capacitor/android@8.3.1 --ignore-scripts --no-fund --no-audit --loglevel error
+COPY package*.json ./
+RUN npm install --no-fund --no-audit --loglevel error
 
-# Cache Gradle distribution before copying project (faster rebuilds)
-COPY android/gradle/ ./android/gradle/
-COPY android/gradlew ./android/gradlew
+# === STEP 2: Build Vite frontend with Android API URL ===
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tsconfig.node.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY capacitor.config.ts ./
+COPY .env.android ./.env.android
+COPY src/ ./src/
+COPY public/ ./public/
+RUN npm run build:android
+
+# === STEP 3: Sync web assets into Android project ===
+COPY android/ ./android/
+RUN rm -rf ./android/app/src/main/assets/public && \
+    mkdir -p ./android/app/src/main/assets/public && \
+    cp -r ./dist/* ./android/app/src/main/assets/public/
+
+# Cache Gradle download as a separate layer
 RUN chmod +x ./android/gradlew && \
     cd android && ./gradlew --version --no-daemon 2>&1 | tail -3 || true
 
-# Copy full Android project
-COPY android/ ./android/
-
-# Build debug APK
+# === STEP 4: Build debug APK ===
 WORKDIR /project/android
-RUN ./gradlew assembleDebug --no-daemon --no-build-cache 2>&1
+RUN ./gradlew assembleDebug --no-daemon --no-build-cache

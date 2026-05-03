@@ -15,6 +15,7 @@ interface AuthState {
   login: (token: string, user: User) => void
   logout: () => void
   setActiveChild: (childId: string) => void
+  setUser: (user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
       login: (token, user) => set({ token, user }),
       logout: () => set({ token: null, user: null, activeChildId: null }),
       setActiveChild: (childId) => set({ activeChildId: childId }),
+      setUser: (user) => set({ user }),
     }),
     { name: 'habitkids-auth' }
   )
