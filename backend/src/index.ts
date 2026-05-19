@@ -11,7 +11,7 @@ import completionsRoutes from './routes/completions'
 import rewardsRoutes from './routes/rewards'
 import badgesRoutes from './routes/badges'
 import pushRoutes from './routes/push'
-import { initVapid, startNotificationScheduler } from './services/notifications'
+import { initVapid, initFCM, startNotificationScheduler } from './services/notifications'
 
 const prisma = new PrismaClient()
 const app = Fastify({ logger: { level: 'info' } })
@@ -52,6 +52,7 @@ const start = async () => {
   try {
     await prisma.$connect()
     initVapid()
+    initFCM()
     startNotificationScheduler(prisma)
     await app.listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' })
     console.log('🚀 HabitKids API running on port 3000')

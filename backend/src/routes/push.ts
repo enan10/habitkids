@@ -92,6 +92,28 @@ export default async function pushRoutes(app: FastifyInstance) {
       return { success: true }
     })
 
+    // FCM token registration (Android APK)
+    auth.post('/fcm-register', async (request: any) => {
+      const { token } = request.body as { token: string }
+      if (!token) return { success: false }
+      await app.prisma.fcmDevice.upsert({
+        where: { token },
+        update: { userId: request.userId },
+        create: { token, userId: request.userId },
+      })
+      return { success: true }
+    })
+
+    auth.delete('/fcm-register', async (request: any) => {
+      const { token } = request.body as { token: string }
+      if (token) {
+        await app.prisma.fcmDevice.deleteMany({ where: { token, userId: request.userId } })
+      } else {
+        await app.prisma.fcmDevice.deleteMany({ where: { userId: request.userId } })
+      }
+      return { success: true }
+    })
+
     auth.post('/test', async (request: any) => {
       await sendPushToUser(app.prisma, request.userId, {
         title: 'HabitKids 🌟',

@@ -16,6 +16,7 @@ model User {
   createdAt DateTime @default(now())
   children           Child[]
   pushSubscriptions  PushSubscription[]
+  fcmDevices         FcmDevice[]
 }
 
 enum Plan {
@@ -122,6 +123,14 @@ model PushSubscription {
   endpoint  String   @unique
   p256dh    String
   auth      String
+  createdAt DateTime @default(now())
+}
+
+model FcmDevice {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 

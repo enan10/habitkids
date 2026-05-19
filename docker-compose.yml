@@ -28,8 +28,9 @@ services:
       PORT: 3000
       VAPID_PUBLIC_KEY: BELky-AiZ493-wF4l4dQ83wLg71vbztRHxFOptjTe7IgX-KvebKB5h7Y6pDqpb9YzhMvwR7x0IR1CYMScYaN6pk
       VAPID_PRIVATE_KEY: PXI_9Rtw1FFXUhoc_k_iTBI03EKaCC-FM9XsW1eOsVg
+      FIREBASE_SERVICE_ACCOUNT: ''
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       postgres:
         condition: service_healthy
