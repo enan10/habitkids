@@ -9,32 +9,40 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <title>HabitKids ⭐</title>
+    <style>
+      img.emoji {
+        height: 1.1em;
+        width: 1.1em;
+        vertical-align: -0.15em;
+        display: inline;
+        margin: 0 0.05em;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
     <script>
-      // Remplace les emojis texte par des images SVG (compatibilité Kindle Fire et vieux appareils)
       function applyTwemoji() {
         if (!window.twemoji) return
         twemoji.parse(document.body, {
           folder: 'svg',
-          ext: '.svg',
-          base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'
+          ext: '.svg'
         })
       }
       var debounceTimer
       var observer = new MutationObserver(function(mutations) {
-        var hasText = mutations.some(function(m) {
+        var hasNew = mutations.some(function(m) {
           return Array.from(m.addedNodes).some(function(n) { return n.nodeType === 1 })
         })
-        if (!hasText) return
+        if (!hasNew) return
         clearTimeout(debounceTimer)
         debounceTimer = setTimeout(applyTwemoji, 150)
       })
       window.addEventListener('load', function() {
-        observer.observe(document.getElementById('root'), { childList: true, subtree: true })
+        var root = document.getElementById('root')
+        if (root) observer.observe(root, { childList: true, subtree: true })
         applyTwemoji()
       })
     </script>
