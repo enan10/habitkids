@@ -214,6 +214,7 @@ export default function ParentView() {
       avatarColor: '#FF6B6B',
       classe: newChildForm.classe || undefined,
       birthDate: newChildForm.birthDate || undefined,
+      photoUrl: newChildForm.photoUrl || undefined,
     })
     if (newChildForm.photoUrl && res.data?.id) {
       setChildPhoto(res.data.id, newChildForm.photoUrl)
@@ -430,13 +431,12 @@ export default function ParentView() {
               {editingAvatar && (
                 <PhotoPicker
                   photoUrl={activeChild.photoUrl}
-                  onPhotoChange={(url) => {
-                    if (url) {
-                      setChildPhoto(activeChild.id, url)
-                    } else {
-                      removeChildPhoto(activeChild.id)
-                    }
-                    // Update local state immediately — no API call needed
+                  onPhotoChange={async (url) => {
+                    // Save to server so all devices see the photo
+                    await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
+                    // Keep localStorage as cache
+                    if (url) setChildPhoto(activeChild.id, url)
+                    else removeChildPhoto(activeChild.id)
                     setChildren(prev => prev.map(c =>
                       c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
                     ))
