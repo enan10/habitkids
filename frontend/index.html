@@ -13,5 +13,30 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
+    <script>
+      // Remplace les emojis texte par des images SVG (compatibilité Kindle Fire et vieux appareils)
+      function applyTwemoji() {
+        if (!window.twemoji) return
+        twemoji.parse(document.body, {
+          folder: 'svg',
+          ext: '.svg',
+          base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'
+        })
+      }
+      var debounceTimer
+      var observer = new MutationObserver(function(mutations) {
+        var hasText = mutations.some(function(m) {
+          return Array.from(m.addedNodes).some(function(n) { return n.nodeType === 1 })
+        })
+        if (!hasText) return
+        clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(applyTwemoji, 150)
+      })
+      window.addEventListener('load', function() {
+        observer.observe(document.getElementById('root'), { childList: true, subtree: true })
+        applyTwemoji()
+      })
+    </script>
   </body>
 </html>
