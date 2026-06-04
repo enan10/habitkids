@@ -6,6 +6,23 @@ interface Props {
   onPhotoChange: (dataUrl: string | null) => void
 }
 
+function resizeFromDataUrl(dataUrl: string, maxSize = 500): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      let w = img.width, h = img.height
+      if (w > h) { h = Math.round(h * maxSize / w); w = maxSize }
+      else { w = Math.round(w * maxSize / h); h = maxSize }
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      resolve(canvas.toDataURL('image/jpeg', 0.82))
+    }
+    img.onerror = () => resolve(dataUrl)
+    img.src = dataUrl
+  })
+}
+
 async function pickNative(): Promise<string | null> {
   const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
   try {
@@ -15,7 +32,8 @@ async function pickNative(): Promise<string | null> {
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Photos,
     })
-    return image.dataUrl ?? null
+    if (!image.dataUrl) return null
+    return await resizeFromDataUrl(image.dataUrl)
   } catch {
     return null
   }

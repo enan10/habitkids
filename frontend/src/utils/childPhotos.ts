@@ -13,8 +13,11 @@ export function removeChildPhoto(childId: string): void {
 }
 
 export function mergePhotos<T extends { id: string; photoUrl?: string }>(children: T[]): T[] {
-  return children.map(c => ({
-    ...c,
-    photoUrl: getChildPhoto(c.id) || c.photoUrl,
-  } as T))
+  return children.map(c => {
+    const serverPhoto = c.photoUrl
+    const localPhoto = getChildPhoto(c.id)
+    // Server wins — sync local cache so offline works too
+    if (serverPhoto) setChildPhoto(c.id, serverPhoto)
+    return { ...c, photoUrl: serverPhoto || localPhoto } as T
+  })
 }

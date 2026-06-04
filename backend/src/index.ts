@@ -14,7 +14,8 @@ import pushRoutes from './routes/push'
 import { initVapid, initFCM, startNotificationScheduler } from './services/notifications'
 
 const prisma = new PrismaClient()
-const app = Fastify({ logger: { level: 'info' } })
+// 5MB limit for child photo (base64 data URL)
+const app = Fastify({ logger: { level: 'info' }, bodyLimit: 5 * 1024 * 1024 })
 
 app.register(cors, {
   origin: [
