@@ -285,35 +285,25 @@ export default function ParentView() {
 
   const TABS = [
     { id: 'habits',        label: '📋 Habitudes' },
-    { id: 'stats',         label: '📊 Stats' },
     { id: 'rewards',       label: '🎁 Récompenses' },
-    { id: 'notifications', label: '🔔 Rappels' },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
 
+      {/* Header simplifié */}
       <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-black text-gray-800">👨‍👩‍👧 Espace Parent</h1>
-          <p className="text-sm text-gray-500 font-semibold">{user?.name}</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-base font-black text-gray-800">Espace Parent</h1>
+            <p className="text-xs text-gray-400 font-semibold">{user?.name}</p>
+          </div>
         </div>
         <div className="flex gap-2 items-center">
-          {!isPremium && (
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowUpgrade(true)}
-              className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-2 rounded-xl text-xs">
-              ⭐ Premium
-            </motion.button>
-          )}
-          {isPremium && (
-            <span className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-1.5 rounded-xl text-xs">
-              ✨ Premium
-            </span>
-          )}
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/child')}
             className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
-            👶 Vue enfant
+            Vue enfant
           </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={logout}
             className="bg-gray-100 text-gray-600 font-bold px-3 py-2 rounded-xl text-sm">
@@ -397,53 +387,69 @@ export default function ParentView() {
 
         {activeChild && (
           <>
-            <div className="flex gap-1 bg-gray-200 rounded-2xl p-1 mb-4">
+            <div className="flex gap-2 mb-4">
               {TABS.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id as any)}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${tab === t.id ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500'}`}>
+                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${
+                    tab === t.id
+                      ? 'bg-kids-orange text-white shadow-md'
+                      : 'bg-white text-gray-500 shadow-sm'
+                  }`}>
                   {t.label}
                 </button>
               ))}
             </div>
 
+            {/* Profil enfant compact */}
             <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-              <div className="flex items-center gap-4 mb-3">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)} title="Modifier la photo">
+              <div className="flex items-center gap-3">
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)}>
                   {activeChild.photoUrl
                     ? <img src={activeChild.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-kids-orange" />
                     : <span className="text-4xl">{activeChild.avatarEmoji}</span>
                   }
                 </motion.button>
-                <div className="flex-1">
-                  <h2 className="font-black text-gray-800 text-lg">{activeChild.name}</h2>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm font-semibold text-gray-500">
-                    <span>🏆 Niv. {activeChild.level}</span>
-                    <span>⭐ {activeChild.xp} XP</span>
-                    <span>🔥 {activeChild.streakDays}j</span>
-                    {activeChild.classe && <span>📚 {activeChild.classe}</span>}
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-black text-gray-800 text-base">{activeChild.name}</h2>
+                  <p className="text-xs text-gray-400 font-semibold">
+                    Niv. {activeChild.level} · {activeChild.xp} XP · {activeChild.streakDays}j
+                    {activeChild.classe ? ` · ${activeChild.classe}` : ''}
+                  </p>
                 </div>
-                <button onClick={() => setEditingAvatar(v => !v)}
-                  className="text-sm text-kids-blue font-bold px-3 py-1 rounded-xl bg-blue-50">
-                  {editingAvatar ? '✓ Fermer' : '📷 Photo'}
-                </button>
+                <div className="flex flex-col gap-1 items-end">
+                  <button onClick={() => setEditingAvatar(v => !v)}
+                    className="text-xs text-kids-blue font-bold px-2 py-1 rounded-lg bg-blue-50">
+                    {editingAvatar ? '✓ Fermer' : '📷 Photo'}
+                  </button>
+                  <button onClick={() => setTab('stats' as any)}
+                    className="text-xs text-gray-400 font-bold px-2 py-1 rounded-lg bg-gray-50">
+                    📊 Stats
+                  </button>
+                  <button onClick={() => setTab('notifications' as any)}
+                    className="text-xs text-gray-400 font-bold px-2 py-1 rounded-lg bg-gray-50">
+                    🔔 Rappels
+                  </button>
+                </div>
               </div>
               {editingAvatar && (
-                <PhotoPicker
-                  photoUrl={activeChild.photoUrl}
-                  onPhotoChange={async (url) => {
-                    try {
-                      await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
-                      if (url) setChildPhoto(activeChild.id, url)
-                      else removeChildPhoto(activeChild.id)
-                      setChildren(prev => prev.map(c =>
-                        c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
-                      ))
-                    } catch {
-                      alert('❌ Erreur : la photo n\'a pas pu être sauvegardée sur le serveur. Vérifiez votre connexion et réessayez.')
-                    }
-                  }}
-                />
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <PhotoPicker
+                    photoUrl={activeChild.photoUrl}
+                    onPhotoChange={async (url) => {
+                      try {
+                        await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
+                        if (url) setChildPhoto(activeChild.id, url)
+                        else removeChildPhoto(activeChild.id)
+                        setChildren(prev => prev.map(c =>
+                          c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
+                        ))
+                        setEditingAvatar(false)
+                      } catch {
+                        alert('❌ Erreur : photo non sauvegardée. Vérifiez votre connexion.')
+                      }
+                    }}
+                  />
+                </div>
               )}
             </div>
 
@@ -451,25 +457,19 @@ export default function ParentView() {
               <div>
                 {/* Header row */}
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-black text-gray-700">Habitudes ({activeChild.habits?.length ?? 0}/5)</h3>
-                  <div className="flex gap-2">
-                    <div className="flex bg-gray-100 rounded-xl overflow-hidden text-xs font-bold">
-                      <button
-                        onClick={() => setHabitsView('list')}
-                        className={`px-3 py-2 transition-all ${habitsView === 'list' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}
-                      >
-                        📋 Liste
-                      </button>
-                      <button
-                        onClick={() => setHabitsView('parjour')}
-                        className={`px-3 py-2 transition-all ${habitsView === 'parjour' ? 'bg-white shadow text-gray-800' : 'text-gray-400'}`}
-                      >
-                        📅 Par jour
-                      </button>
-                    </div>
+                  <div>
+                    <h3 className="font-black text-gray-700">Habitudes</h3>
+                    <p className="text-xs text-gray-400">{activeChild.habits?.length ?? 0} habitude{(activeChild.habits?.length ?? 0) !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <button
+                      onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
+                      className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
+                      {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
+                    </button>
                     <motion.button whileTap={{ scale: 0.95 }}
                       onClick={() => { setAddForDay(null); setShowSuggestions(v => !v); setShowHabitForm(false) }}
-                      className="bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
+                      className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
                       + Ajouter
                     </motion.button>
                   </div>
