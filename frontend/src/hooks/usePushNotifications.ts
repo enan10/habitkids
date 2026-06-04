@@ -12,19 +12,22 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 }
 
 const IS_NATIVE = Capacitor.isNativePlatform()
+const NOTIFICATIONS_DISABLED = import.meta.env.VITE_DISABLE_NOTIFICATIONS === 'true'
+const FCM_KEY = 'habitkids-fcm-subscribed'
+const FCM_TOKEN_KEY = 'habitkids-fcm-token'
 
 export function usePushNotifications() {
-  const [supported, setSupported]     = useState(IS_NATIVE || ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window))
-  const [permission, setPermission]   = useState<'default' | 'granted' | 'denied'>('default')
+  const [supported, setSupported]       = useState(!NOTIFICATIONS_DISABLED && (IS_NATIVE || ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window)))
+  const [permission, setPermission]     = useState<'default' | 'granted' | 'denied'>('default')
   const [isSubscribed, setIsSubscribed] = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const listenersAdded                = useRef(false)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
+  const listenersAdded                  = useRef(false)
 
   useEffect(() => {
-    if (IS_NATIVE) {
-      initNative()
-    } else {
+    if (NOTIFICATIONS_DISABLED) return
+    if (IS_NATIVE) initNative()
+    else {
       if (!supported) return
       setPermission(Notification.permission as 'default' | 'granted' | 'denied')
       checkWebSubscription()
@@ -36,54 +39,72 @@ export function usePushNotifications() {
   const initNative = async () => {
     const { PushNotifications } = await import('@capacitor/push-notifications')
     const result = await PushNotifications.checkPermissions()
+
     if (result.receive === 'granted') {
       setPermission('granted')
-      setIsSubscribed(true)
+      // Respect explicit opt-out, otherwise assume subscribed
+      if (localStorage.getItem(FCM_KEY) !== 'false') {
+        setIsSubscribed(true)
+      }
+    }
+
+    // Set up listeners here so they survive an Android Activity recreation
+    if (!listenersAdded.current) {
+      listenersAdded.current = true
+
+      await PushNotifications.addListener('registration', async ({ value: token }) => {
+        // Ignore if user explicitly unsubscribed
+        if (localStorage.getItem(FCM_KEY) === 'false') return
+        localStorage.setItem(FCM_TOKEN_KEY, token)
+        localStorage.setItem(FCM_KEY, 'true')
+        setIsSubscribed(true)
+        setPermission('granted')
+        // Best-effort server registration — don't block on failure
+        api.post('/push/fcm-register', { token }).catch(() => {})
+      })
+
+      await PushNotifications.addListener('registrationError', () => {
+        // token not obtained, but OS permission might still be granted
+      })
+
+      await PushNotifications.addListener('pushNotificationReceived', () => {})
     }
   }
 
   const subscribeNative = async () => {
     const { PushNotifications } = await import('@capacitor/push-notifications')
 
+    // This call may trigger the Android permission dialog which can destroy/recreate
+    // the Activity. We optimistically update state before calling requestPermissions.
     const result = await PushNotifications.requestPermissions()
     if (result.receive !== 'granted') {
       setPermission('denied')
       setError('Permission refusée dans les paramètres Android')
       return
     }
+
     setPermission('granted')
+    // Optimistically mark subscribed — the registration listener will confirm with token
+    localStorage.setItem(FCM_KEY, 'true')
+    setIsSubscribed(true)
 
-    if (!listenersAdded.current) {
-      listenersAdded.current = true
-
-      await PushNotifications.addListener('registration', async ({ value: token }) => {
-        try {
-          await api.post('/push/fcm-register', { token })
-          setIsSubscribed(true)
-        } catch {
-          setError('Erreur d\'enregistrement FCM')
-        }
-      })
-
-      await PushNotifications.addListener('registrationError', ({ error: err }) => {
-        setError(`Erreur FCM : ${err}`)
-      })
-
-      // Handle notification received while app is open
-      await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Push received:', notification)
-      })
-    }
-
+    // Trigger FCM token request — handled by the listener set up in initNative
     await PushNotifications.register()
   }
 
   const unsubscribeNative = async () => {
     const { PushNotifications } = await import('@capacitor/push-notifications')
-    await api.delete('/push/fcm-register', { data: {} })
+    const token = localStorage.getItem(FCM_TOKEN_KEY)
+
+    // Update local state immediately — don't wait for server response
+    localStorage.setItem(FCM_KEY, 'false')
+    localStorage.removeItem(FCM_TOKEN_KEY)
+    setIsSubscribed(false)
     await PushNotifications.removeAllListeners()
     listenersAdded.current = false
-    setIsSubscribed(false)
+
+    // Best-effort server unregistration
+    api.delete('/push/fcm-register', { data: token ? { token } : {} }).catch(() => {})
   }
 
   // ── Web Push (VAPID — navigateur) ─────────────────────────────────────────
@@ -100,14 +121,12 @@ export function usePushNotifications() {
   const subscribeWeb = async () => {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
     await navigator.serviceWorker.ready
-
     const perm = await Notification.requestPermission()
     setPermission(perm as 'default' | 'granted' | 'denied')
     if (perm !== 'granted') {
       setError('Permission refusée. Activez les notifications dans les paramètres du navigateur.')
       return
     }
-
     const { data } = await api.get('/push/vapid-public-key')
     const appServerKey = urlBase64ToUint8Array(data.publicKey)
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey as unknown as ArrayBuffer })
@@ -145,16 +164,19 @@ export function usePushNotifications() {
 
   const unsubscribe = async () => {
     setLoading(true)
+    setError('')
     try {
       if (IS_NATIVE) await unsubscribeNative()
       else           await unsubscribeWeb()
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la désactivation')
     } finally {
       setLoading(false)
     }
   }
 
   const sendTest = async () => {
-    await api.post('/push/test')
+    try { await api.post('/push/test') } catch {}
   }
 
   return { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest }

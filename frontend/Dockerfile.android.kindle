@@ -27,7 +27,7 @@ WORKDIR /project
 COPY package*.json ./
 RUN npm install --no-fund --no-audit --loglevel error
 
-# === STEP 2: Build Vite frontend with Android API URL ===
+# === STEP 2: Build Vite frontend — mode kindle (notifications désactivées) ===
 COPY index.html ./
 COPY vite.config.ts ./
 COPY tsconfig.json ./
@@ -35,12 +35,12 @@ COPY tsconfig.node.json ./
 COPY tailwind.config.ts ./
 COPY postcss.config.js ./
 COPY capacitor.config.ts ./
-COPY .env.android ./.env.android
+COPY .env.kindle ./.env.kindle
 COPY src/ ./src/
 COPY public/ ./public/
-RUN npm run build:android
+RUN npm run build:kindle
 
-# === STEP 3: Sync via Capacitor (generates capacitor-cordova-android-plugins + copies assets) ===
+# === STEP 3: Sync via Capacitor ===
 COPY android/ ./android/
 RUN chmod +x ./android/gradlew && sed -i 's/\r//' ./android/gradlew
 RUN CAPACITOR_ANDROID_STUDIO_PATH=/dev/null npx cap sync android 2>&1 | grep -v "Opening Android Studio"
@@ -48,7 +48,7 @@ RUN CAPACITOR_ANDROID_STUDIO_PATH=/dev/null npx cap sync android 2>&1 | grep -v 
 # Cache Gradle download as a separate layer
 RUN cd android && ./gradlew --version --no-daemon 2>&1 | tail -3 || true
 
-# === STEP 4: Build release AAB ===
+# === STEP 4: Build release APK ===
 ARG KEYSTORE_PASSWORD
 ARG KEY_PASSWORD
 ARG KEY_ALIAS=habitkids
@@ -58,4 +58,4 @@ ENV KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD}
 ENV KEY_ALIAS=${KEY_ALIAS}
 ENV KEY_PASSWORD=${KEY_PASSWORD}
 WORKDIR /project/android
-RUN ./gradlew bundleRelease --no-daemon --no-build-cache
+RUN ./gradlew assembleRelease --no-daemon --no-build-cache

@@ -9,6 +9,7 @@ import BadgeEarnedModal from './BadgeEarnedModal'
 import { useHabits } from '../../hooks/useHabits'
 import { playComplete, playPerfectDay, playUncomplete } from '../../utils/sounds'
 import { launchConfetti } from '../../utils/confetti'
+import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
 
 interface Child {
@@ -16,6 +17,7 @@ interface Child {
   name: string
   avatarEmoji: string
   avatarColor: string
+  photoUrl?: string
   xp: number
   level: number
   streakDays: number
@@ -50,8 +52,10 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
       setTodayPoints(total)
     })
     api.get(`/children/${child.id}`).then(res => {
-      setChildData(res.data)
-      onChildUpdate(res.data)
+      const photo = getChildPhoto(child.id)
+      const updated = { ...res.data, photoUrl: photo || res.data.photoUrl }
+      setChildData(updated)
+      onChildUpdate(updated)
     })
   }, [child.id])
 
@@ -121,11 +125,15 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
     <div ref={containerRef} className="px-4 pb-10 max-w-md mx-auto">
       <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center py-4">
         <motion.div
-          className="text-7xl mb-1 inline-block"
+          className="mb-1 inline-block"
           animate={{ rotate: [0, -5, 5, 0] }}
           transition={{ repeat: Infinity, duration: 4 }}
         >
-          {childData.avatarEmoji}
+          {childData.photoUrl
+            ? <img src={childData.photoUrl} alt={childData.name}
+                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg mx-auto" />
+            : <span className="text-7xl">{childData.avatarEmoji}</span>
+          }
         </motion.div>
         <h1 className="text-2xl font-black text-gray-800">
           {greeting()}, <span style={{ color: childData.avatarColor }}>{childData.name}</span> !

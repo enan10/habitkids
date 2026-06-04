@@ -4,12 +4,14 @@ import { motion } from 'framer-motion'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
 import Dashboard from '../components/child/Dashboard'
+import { mergePhotos } from '../utils/childPhotos'
 
 interface Child {
   id: string
   name: string
   avatarEmoji: string
   avatarColor: string
+  photoUrl?: string
   xp: number
   level: number
   streakDays: number
@@ -23,8 +25,9 @@ export default function ChildView() {
 
   useEffect(() => {
     api.get('/children').then(res => {
-      setChildren(res.data)
-      if (!activeChildId && res.data.length > 0) setActiveChild(res.data[0].id)
+      const merged = mergePhotos(res.data as Child[])
+      setChildren(merged)
+      if (!activeChildId && merged.length > 0) setActiveChild(merged[0].id)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [])
@@ -73,7 +76,11 @@ export default function ChildView() {
                     : 'bg-white text-gray-600 border-2 border-gray-200'
                 }`}
               >
-                {child.avatarEmoji} {child.name}
+                {child.photoUrl
+                  ? <img src={child.photoUrl} className="w-6 h-6 rounded-full object-cover" />
+                  : <span>{child.avatarEmoji}</span>
+                }
+                {child.name}
               </button>
             ))}
           </div>

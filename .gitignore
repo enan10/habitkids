@@ -4,4 +4,6 @@ dist/
 .env.local
 .env.*.local
 frontend/habitkids-debug.apk
+*.keystore
+*.jks
 *.log

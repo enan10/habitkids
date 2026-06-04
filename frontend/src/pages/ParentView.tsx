@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, Reorder } from 'framer-motion'
+import { motion, Reorder, useDragControls } from 'framer-motion'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
 import HabitForm, { CATEGORIES } from '../components/parent/HabitForm'
 import StatsView from '../components/parent/StatsView'
-import AvatarPicker from '../components/parent/AvatarPicker'
+import PhotoPicker from '../components/parent/PhotoPicker'
+import { mergePhotos, setChildPhoto, removeChildPhoto } from '../utils/childPhotos'
 import NotificationSettings from '../components/parent/NotificationSettings'
 import UpgradeModal from '../components/parent/UpgradeModal'
 
@@ -14,6 +15,9 @@ interface Child {
   name: string
   avatarEmoji: string
   avatarColor: string
+  photoUrl?: string
+  classe?: string
+  birthDate?: string
   xp: number
   level: number
   streakDays: number
@@ -40,35 +44,93 @@ const WEEK_DAYS = [
 ]
 
 const PRESET_HABITS = [
-  { title: 'Se brosser les dents',        emoji: '🦷', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se laver les mains',          emoji: '🧼', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Prendre une douche',          emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se coiffer',                  emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
-  { title: 'Lire 15 minutes',             emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire ses devoirs',           emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Réviser ses leçons',          emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Apprendre un mot nouveau',    emoji: '🔤', category: 'EDUCATION',    color: '#FF9F43', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire du sport 30 min',       emoji: '🏃', category: 'SPORT',        color: '#1DD1A1', pointValue: 20, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Marcher 10 minutes',          emoji: '🚶', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire des étirements',        emoji: '🧘', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Manger des légumes',          emoji: '🥗', category: 'ALIMENTATION', color: '#FECA57', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Boire 8 verres d\'eau',       emoji: '💧', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Prendre le petit-déjeuner',   emoji: '🥣', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se coucher à l\'heure',       emoji: '😴', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Éteindre les écrans à 20h',   emoji: '📵', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Dessiner ou colorier',        emoji: '🎨', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Jouer d\'un instrument',      emoji: '🎵', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire son lit',               emoji: '🛏️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ranger sa chambre',           emoji: '🧹', category: 'MENAGE',       color: '#48DBFB', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Aider à mettre la table',     emoji: '🍽️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Arroser les plantes',         emoji: '🌿', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [1,3,5] },
-  { title: 'Sortir dehors 20 min',        emoji: '🌳', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Dire merci et s\'il te plaît',emoji: '🙏', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Appeler un ami ou la famille',emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
+  { title: 'Se brosser les dents',                  emoji: '🦷', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se laver les mains',                    emoji: '🧼', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Prendre une douche',                    emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se coiffer',                            emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
+  { title: 'Prendre ses médicaments',               emoji: '💊', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Lire 15 minutes',                       emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire ses devoirs',                     emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Réviser ses leçons',                    emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Apprendre un mot nouveau',              emoji: '🔤', category: 'EDUCATION',    color: '#FF9F43', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire du sport 30 min',                 emoji: '🏃', category: 'SPORT',        color: '#1DD1A1', pointValue: 20, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Marcher 10 minutes',                    emoji: '🚶', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire des étirements',                  emoji: '🧘', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Manger des légumes',                    emoji: '🥗', category: 'ALIMENTATION', color: '#FECA57', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Boire 8 verres d\'eau',                 emoji: '💧', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Prendre le petit-déjeuner',             emoji: '🥣', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Limiter les sucreries',                 emoji: '🍬', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se coucher à l\'heure',                 emoji: '😴', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se lever tôt le matin',                 emoji: '🌅', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Éteindre les écrans à 20h',             emoji: '📵', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Dessiner ou colorier',                  emoji: '🎨', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Jouer d\'un instrument',                emoji: '🎵', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Faire son lit',                         emoji: '🛏️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ranger sa chambre',                     emoji: '🧹', category: 'MENAGE',       color: '#48DBFB', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ranger ses vêtements',                  emoji: '👕', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Aider ses parents à la maison',         emoji: '🏠', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Aider à mettre la table',               emoji: '🍽️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Arroser les plantes',                   emoji: '🌿', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [1,3,5] },
+  { title: 'Sortir dehors 20 min',                  emoji: '🌳', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Respecter la nature',                   emoji: '🌍', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Jeter les déchets à la poubelle',       emoji: '🗑️', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Dire merci et s\'il te plaît',          emoji: '🙏', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Saluer poliment les adultes',           emoji: '🤝', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Attendre son tour pour parler',         emoji: '🤫', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'S\'exprimer et écouter les autres',     emoji: '💬', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Céder sa place aux personnes âgées',   emoji: '🧓', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Appeler un ami ou la famille',          emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
+  { title: 'Utiliser le passage piéton',            emoji: '🚸', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ne jamais toucher l\'électricité ou le gaz', emoji: '⚡', category: 'SECURITE', color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Éviter les produits dangereux',         emoji: '⚠️', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ne pas se pencher aux fenêtres',        emoji: '🪟', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Ne pas jouer dans la rue',              emoji: '🛑', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
 ]
 
 function getCategoryInfo(id: string) {
   return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
+}
+
+function HabitRow({ habit, onDragEnd, onDelete }: {
+  habit: any
+  onDragEnd: () => void
+  onDelete: () => void
+}) {
+  const controls = useDragControls()
+  const cat = getCategoryInfo(habit.category || 'GENERAL')
+  return (
+    <Reorder.Item
+      value={habit}
+      dragControls={controls}
+      dragListener={false}
+      onDragEnd={onDragEnd}
+      className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3"
+    >
+      <span
+        className="text-gray-300 text-lg select-none cursor-grab active:cursor-grabbing touch-none px-1"
+        onPointerDown={(e) => controls.start(e)}
+      >⠿</span>
+      <span className="text-2xl">{habit.emoji}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-gray-800 truncate">{habit.title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            {cat.emoji} {cat.label}
+          </span>
+          <span className="text-xs text-gray-500">
+            ⭐ {habit.pointValue} ·{' '}
+            {(habit.daysOfWeek ?? []).length === 7
+              ? 'Quotidien'
+              : (habit.daysOfWeek ?? [])
+                  .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
+                  .map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d])
+                  .join(' ')}
+          </span>
+        </div>
+      </div>
+      <button onClick={onDelete} className="text-red-400 hover:text-red-600 font-bold p-2 text-xl">🗑️</button>
+    </Reorder.Item>
+  )
 }
 
 export default function ParentView() {
@@ -80,7 +142,8 @@ export default function ParentView() {
   const [tab, setTab] = useState<'habits' | 'stats' | 'rewards' | 'notifications'>('habits')
   const [showAddChild, setShowAddChild] = useState(false)
   const [showHabitForm, setShowHabitForm] = useState(false)
-  const [newChildName, setNewChildName] = useState('')
+  const [newChildForm, setNewChildForm] = useState({ name: '', classe: '', birthDate: '', photoUrl: '' })
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [rewards, setRewards] = useState<Reward[]>([])
   const [rewardForm, setRewardForm] = useState({ title: '', emoji: '🎁', pointCost: 50 })
   const [showRewardForm, setShowRewardForm] = useState(false)
@@ -97,8 +160,9 @@ export default function ParentView() {
 
   const fetchChildren = async () => {
     const res = await api.get('/children')
-    setChildren(res.data)
-    if (!activeId && res.data.length > 0) setActiveId(res.data[0].id)
+    const merged = mergePhotos(res.data as Child[])
+    setChildren(merged)
+    if (!activeId && merged.length > 0) setActiveId(merged[0].id)
   }
 
   const fetchRewards = async (childId: string) => {
@@ -142,9 +206,26 @@ export default function ParentView() {
 
   const addChild = async (e: React.FormEvent) => {
     e.preventDefault()
-    await api.post('/children', { name: newChildName, avatarEmoji: '🧒', avatarColor: '#FF6B6B' })
-    setNewChildName('')
+    const res = await api.post('/children', {
+      name: newChildForm.name,
+      avatarEmoji: '🧒',
+      avatarColor: '#FF6B6B',
+      classe: newChildForm.classe || undefined,
+      birthDate: newChildForm.birthDate || undefined,
+    })
+    if (newChildForm.photoUrl && res.data?.id) {
+      setChildPhoto(res.data.id, newChildForm.photoUrl)
+    }
+    setNewChildForm({ name: '', classe: '', birthDate: '', photoUrl: '' })
     setShowAddChild(false)
+    fetchChildren()
+  }
+
+  const deleteChild = async (childId: string) => {
+    await api.delete(`/children/${childId}`)
+    removeChildPhoto(childId)
+    setConfirmDeleteId(null)
+    if (activeId === childId) setActiveId(null)
     fetchChildren()
   }
 
@@ -241,12 +322,24 @@ export default function ParentView() {
       <div className="p-4 max-w-md mx-auto">
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
           {children.map(child => (
-            <button key={child.id} onClick={() => setActiveId(child.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
-                activeId === child.id ? 'bg-kids-orange text-white shadow-md' : 'bg-white text-gray-600 border-2 border-gray-200'
-              }`}>
-              {child.avatarEmoji} {child.name}
-            </button>
+            <div key={child.id} className="relative flex-shrink-0">
+              <button onClick={() => setActiveId(child.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                  activeId === child.id ? 'bg-kids-orange text-white shadow-md' : 'bg-white text-gray-600 border-2 border-gray-200'
+                }`}>
+                {child.photoUrl
+                  ? <img src={child.photoUrl} className="w-6 h-6 rounded-full object-cover" />
+                  : <span>{child.avatarEmoji}</span>
+                }
+                {child.name}
+              </button>
+              {activeId === child.id && (
+                <button onClick={() => setConfirmDeleteId(child.id)}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center shadow">
+                  ✕
+                </button>
+              )}
+            </div>
           ))}
           <button onClick={() => setShowAddChild(true)}
             className="flex items-center gap-1 px-4 py-2 rounded-full font-bold text-sm bg-white text-kids-teal border-2 border-kids-teal whitespace-nowrap">
@@ -254,14 +347,48 @@ export default function ParentView() {
           </button>
         </div>
 
+        {confirmDeleteId && (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 shadow-md mb-4">
+            <p className="font-bold text-red-700 mb-3">⚠️ Supprimer cet enfant ? Toutes ses habitudes et données seront perdues.</p>
+            <div className="flex gap-2">
+              <button onClick={() => deleteChild(confirmDeleteId)}
+                className="flex-1 bg-red-500 text-white font-bold py-2 rounded-xl">Supprimer</button>
+              <button onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 bg-gray-100 text-gray-600 font-bold py-2 rounded-xl">Annuler</button>
+            </div>
+          </motion.div>
+        )}
+
         {showAddChild && (
           <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            onSubmit={addChild} className="bg-white rounded-2xl p-4 shadow-md mb-4 flex gap-2">
-            <input autoFocus type="text" placeholder="Prénom de l'enfant" value={newChildName}
-              onChange={e => setNewChildName(e.target.value)}
-              className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" required />
-            <button type="submit" className="bg-kids-teal text-white font-bold px-4 rounded-xl">✓</button>
-            <button type="button" onClick={() => setShowAddChild(false)} className="bg-gray-100 text-gray-500 font-bold px-3 rounded-xl">✕</button>
+            onSubmit={addChild} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
+            <h3 className="font-black text-gray-800 text-base">👶 Nouvel enfant</h3>
+            <PhotoPicker
+              photoUrl={newChildForm.photoUrl || undefined}
+              onPhotoChange={url => setNewChildForm(f => ({ ...f, photoUrl: url ?? '' }))}
+            />
+            <input autoFocus type="text" placeholder="Prénom *" value={newChildForm.name}
+              onChange={e => setNewChildForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" required />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Date de naissance</label>
+                <input type="date" value={newChildForm.birthDate}
+                  onChange={e => setNewChildForm(f => ({ ...f, birthDate: e.target.value }))}
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-bold text-gray-500 mb-1 block">Classe</label>
+                <input type="text" placeholder="Ex: CM1, 6ème…" value={newChildForm.classe}
+                  onChange={e => setNewChildForm(f => ({ ...f, classe: e.target.value }))}
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">✓ Ajouter</button>
+              <button type="button" onClick={() => setShowAddChild(false)} className="px-4 bg-gray-100 text-gray-500 font-bold rounded-xl">✕</button>
+            </div>
           </motion.form>
         )}
 
@@ -278,30 +405,39 @@ export default function ParentView() {
 
             <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
               <div className="flex items-center gap-4 mb-3">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)}
-                  className="text-4xl" title="Modifier l'avatar">
-                  {activeChild.avatarEmoji}
+                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)} title="Modifier la photo">
+                  {activeChild.photoUrl
+                    ? <img src={activeChild.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-kids-orange" />
+                    : <span className="text-4xl">{activeChild.avatarEmoji}</span>
+                  }
                 </motion.button>
                 <div className="flex-1">
                   <h2 className="font-black text-gray-800 text-lg">{activeChild.name}</h2>
-                  <div className="flex gap-3 text-sm font-semibold text-gray-500">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm font-semibold text-gray-500">
                     <span>🏆 Niv. {activeChild.level}</span>
                     <span>⭐ {activeChild.xp} XP</span>
                     <span>🔥 {activeChild.streakDays}j</span>
+                    {activeChild.classe && <span>📚 {activeChild.classe}</span>}
                   </div>
                 </div>
                 <button onClick={() => setEditingAvatar(v => !v)}
                   className="text-sm text-kids-blue font-bold px-3 py-1 rounded-xl bg-blue-50">
-                  {editingAvatar ? '✓ Fermer' : '✏️ Avatar'}
+                  {editingAvatar ? '✓ Fermer' : '📷 Photo'}
                 </button>
               </div>
               {editingAvatar && (
-                <AvatarPicker
-                  emoji={activeChild.avatarEmoji}
-                  color={activeChild.avatarColor}
-                  onChange={async (emoji, color) => {
-                    await api.patch(`/children/${activeChild.id}`, { avatarEmoji: emoji, avatarColor: color })
-                    fetchChildren()
+                <PhotoPicker
+                  photoUrl={activeChild.photoUrl}
+                  onPhotoChange={(url) => {
+                    if (url) {
+                      setChildPhoto(activeChild.id, url)
+                    } else {
+                      removeChildPhoto(activeChild.id)
+                    }
+                    // Update local state immediately — no API call needed
+                    setChildren(prev => prev.map(c =>
+                      c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
+                    ))
                   }}
                 />
               )}
@@ -473,38 +609,14 @@ export default function ParentView() {
                     }}
                     className="space-y-2"
                   >
-                    {filteredHabits.map(habit => {
-                      const cat = getCategoryInfo(habit.category || 'GENERAL')
-                      return (
-                        <Reorder.Item
-                          key={habit.id}
-                          value={habit}
-                          onDragEnd={() => saveHabitOrder(habitsListRef.current)}
-                          className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3 cursor-grab active:cursor-grabbing"
-                        >
-                          <span className="text-gray-300 text-lg select-none">⠿</span>
-                          <span className="text-2xl">{habit.emoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-800 truncate">{habit.title}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                {cat.emoji} {cat.label}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                ⭐ {habit.pointValue} ·{' '}
-                                {(habit.daysOfWeek ?? []).length === 7
-                                  ? 'Quotidien'
-                                  : (habit.daysOfWeek ?? [])
-                                      .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
-                                      .map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d])
-                                      .join(' ')}
-                              </span>
-                            </div>
-                          </div>
-                          <button onClick={() => deleteHabit(habit.id)} className="text-red-400 hover:text-red-600 font-bold p-2 text-xl">🗑️</button>
-                        </Reorder.Item>
-                      )
-                    })}
+                    {filteredHabits.map(habit => (
+                      <HabitRow
+                        key={habit.id}
+                        habit={habit}
+                        onDragEnd={() => saveHabitOrder(habitsListRef.current)}
+                        onDelete={() => deleteHabit(habit.id)}
+                      />
+                    ))}
                   </Reorder.Group>
                 )}
 

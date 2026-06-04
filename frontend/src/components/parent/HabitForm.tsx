@@ -16,6 +16,7 @@ export const CATEGORIES = [
   { id: 'MENAGE',       label: 'Ménage',       emoji: '🧹' },
   { id: 'NATURE',       label: 'Nature',       emoji: '🌿' },
   { id: 'SOCIAL',       label: 'Social',       emoji: '👫' },
+  { id: 'SECURITE',     label: 'Sécurité',     emoji: '🛡️' },
 ]
 
 const DAYS = [

@@ -30,6 +30,8 @@ model Child {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   birthDate    DateTime?
+  classe       String?
+  photoUrl     String?           @db.Text
   avatarEmoji  String            @default("🧒")
   avatarColor  String            @default("#FF6B6B")
   xp           Int               @default(0)
