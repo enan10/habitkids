@@ -34,7 +34,8 @@ export function useHabits(childId: string | null) {
         api.get(`/children/${childId}?filter=today`),
         api.get(`/completions/today/${childId}`),
       ])
-      setHabits(childRes.data.habits ?? [])
+      const sorted = (childRes.data.habits ?? []).slice().sort((a: Habit, b: Habit) => (a.order ?? 0) - (b.order ?? 0))
+      setHabits(sorted)
       setCompletions(completionsRes.data ?? [])
     } finally {
       setLoading(false)

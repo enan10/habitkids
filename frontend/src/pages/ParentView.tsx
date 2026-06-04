@@ -181,6 +181,7 @@ export default function ParentView() {
 
   const saveHabitOrder = async (newList: any[]) => {
     await Promise.all(newList.map((h, i) => api.patch(`/habits/${h.id}`, { order: i })))
+    fetchChildren()
   }
 
   useEffect(() => {
