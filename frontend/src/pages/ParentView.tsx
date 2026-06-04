@@ -49,6 +49,7 @@ const PRESET_HABITS = [
   { title: 'Prendre une douche',                    emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
   { title: 'Se coiffer',                            emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
   { title: 'Prendre ses médicaments',               emoji: '💊', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Porter ses sandales de maison',         emoji: '👟', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
   { title: 'Lire 15 minutes',                       emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
   { title: 'Faire ses devoirs',                     emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
   { title: 'Réviser ses leçons',                    emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
