@@ -432,14 +432,16 @@ export default function ParentView() {
                 <PhotoPicker
                   photoUrl={activeChild.photoUrl}
                   onPhotoChange={async (url) => {
-                    // Save to server so all devices see the photo
-                    await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
-                    // Keep localStorage as cache
-                    if (url) setChildPhoto(activeChild.id, url)
-                    else removeChildPhoto(activeChild.id)
-                    setChildren(prev => prev.map(c =>
-                      c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
-                    ))
+                    try {
+                      await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
+                      if (url) setChildPhoto(activeChild.id, url)
+                      else removeChildPhoto(activeChild.id)
+                      setChildren(prev => prev.map(c =>
+                        c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
+                      ))
+                    } catch {
+                      alert('❌ Erreur : la photo n\'a pas pu être sauvegardée sur le serveur. Vérifiez votre connexion et réessayez.')
+                    }
                   }}
                 />
               )}
