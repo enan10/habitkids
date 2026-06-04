@@ -472,8 +472,8 @@ export default function ParentView() {
                   </div>
                 </div>
 
-                {/* Add panel: suggestions + custom form toggle */}
-                {(showSuggestions || showHabitForm) && (
+                {/* Add panel: suggestions */}
+                {showSuggestions && (
                   <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-orange-50 border-2 border-kids-orange/30 rounded-2xl p-4 mb-4">
                     {addForDay !== null && (
@@ -488,22 +488,9 @@ export default function ParentView() {
                       </div>
                     )}
 
-                    {/* Tabs inside the panel */}
-                    <div className="flex gap-2 mb-4">
-                      <button
-                        onClick={() => { setShowSuggestions(true); setShowHabitForm(false) }}
-                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                          showSuggestions ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'
-                        }`}>
-                        💡 Suggestions
-                      </button>
-                      <button
-                        onClick={() => { setShowHabitForm(true); setShowSuggestions(false) }}
-                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                          showHabitForm ? 'bg-kids-teal text-white border-kids-teal' : 'bg-white text-gray-500 border-gray-200'
-                        }`}>
-                        ✏️ Personnalisée
-                      </button>
+                    {/* Header panel */}
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="font-bold text-gray-700 text-sm">💡 Suggestions d'habitudes</span>
                       <button
                         onClick={() => { setShowSuggestions(false); setShowHabitForm(false) }}
                         className="px-3 py-2 bg-white text-gray-400 border-2 border-gray-200 rounded-xl font-bold text-sm">
@@ -512,8 +499,7 @@ export default function ParentView() {
                     </div>
 
                     {/* Suggestions list */}
-                    {showSuggestions && (
-                      <>
+                    <>
                         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
                           <button onClick={() => setSuggestCatFilter('ALL')}
                             className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
@@ -554,20 +540,8 @@ export default function ParentView() {
                               )
                             })}
                         </div>
-                      </>
-                    )}
+                    </>
 
-                    {/* Custom form */}
-                    {showHabitForm && (
-                      <div className="-mx-4 -mb-4">
-                        <HabitForm
-                          childId={activeChild.id}
-                          defaultDays={addForDay !== null ? [addForDay] : undefined}
-                          onSave={() => { setShowHabitForm(false); setShowSuggestions(false); setAddForDay(null); fetchChildren() }}
-                          onCancel={() => { setShowHabitForm(false); setShowSuggestions(true) }}
-                        />
-                      </div>
-                    )}
                   </motion.div>
                 )}
 
