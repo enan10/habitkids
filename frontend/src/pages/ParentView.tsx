@@ -252,6 +252,8 @@ export default function ParentView() {
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showHamburger, setShowHamburger] = useState(false)
   const [showNotifPanel, setShowNotifPanel] = useState(false)
+  const [editingChildProfile, setEditingChildProfile] = useState<Child | null>(null)
+  const [editChildForm, setEditChildForm] = useState({ name: '', classe: '', birthDate: '', photoUrl: '' })
   const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
   const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
 
@@ -441,6 +443,35 @@ export default function ParentView() {
     } catch (err: any) {
       if (err.response?.data?.upgrade) { setShowRewardForm(false); setShowUpgrade(true) }
       else alert(err.response?.data?.error || 'Erreur')
+    }
+  }
+
+  const openEditChildProfile = (child: Child) => {
+    setEditChildForm({
+      name: child.name,
+      classe: child.classe ?? '',
+      birthDate: child.birthDate ? child.birthDate.split('T')[0] : '',
+      photoUrl: child.photoUrl ?? '',
+    })
+    setEditingChildProfile(child)
+    setShowHamburger(false)
+  }
+
+  const saveChildProfile = async () => {
+    if (!editingChildProfile) return
+    try {
+      await api.patch(`/children/${editingChildProfile.id}`, {
+        name: editChildForm.name,
+        classe: editChildForm.classe || undefined,
+        birthDate: editChildForm.birthDate || undefined,
+        photoUrl: editChildForm.photoUrl || null,
+      })
+      if (editChildForm.photoUrl) setChildPhoto(editingChildProfile.id, editChildForm.photoUrl)
+      else removeChildPhoto(editingChildProfile.id)
+      setEditingChildProfile(null)
+      fetchChildren()
+    } catch {
+      alert('Erreur lors de la sauvegarde')
     }
   }
 
@@ -955,11 +986,7 @@ export default function ParentView() {
                         className={`flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all ${activeId === c.id ? 'border-kids-orange bg-orange-50' : 'border-transparent hover:bg-gray-50'}`}>
                         {/* Photo cliquable */}
                         <button
-                          onClick={() => {
-                            setActiveId(c.id)
-                            setEditingAvatar(true)
-                            setShowHamburger(false)
-                          }}
+                          onClick={() => openEditChildProfile(c)}
                           className="relative flex-shrink-0">
                           {c.photoUrl
                             ? <img src={c.photoUrl} className="w-11 h-11 rounded-full object-cover border-2 border-kids-orange" />
@@ -969,7 +996,7 @@ export default function ParentView() {
                         </button>
                         {/* Infos */}
                         <button
-                          onClick={() => { setActiveId(c.id); setShowHamburger(false) }}
+                          onClick={() => openEditChildProfile(c)}
                           className="flex-1 text-left min-w-0">
                           <p className="font-bold text-gray-800 text-sm truncate">{c.name}</p>
                           <p className="text-xs text-gray-400">Niv. {c.level} · {c.xp} XP{c.classe ? ` · ${c.classe}` : ''}</p>
@@ -1008,6 +1035,88 @@ export default function ParentView() {
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-left">
                   <span className="text-xl">🚪</span>
                   <span className="font-bold text-red-500">Se déconnecter</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal modification profil enfant */}
+      <AnimatePresence>
+        {editingChildProfile && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setEditingChildProfile(null)} />
+            <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+              className="fixed inset-x-4 top-16 bottom-16 max-w-md mx-auto bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h2 className="font-black text-gray-800 text-lg">Modifier le profil</h2>
+                <button onClick={() => setEditingChildProfile(null)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+              </div>
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {/* Photo */}
+                <div className="flex flex-col items-center">
+                  <PhotoPicker
+                    photoUrl={editChildForm.photoUrl || undefined}
+                    onPhotoChange={async (url) => {
+                      try {
+                        if (url) {
+                          await api.patch(`/children/${editingChildProfile.id}`, { photoUrl: url })
+                          setChildPhoto(editingChildProfile.id, url)
+                        } else {
+                          await api.patch(`/children/${editingChildProfile.id}`, { photoUrl: null })
+                          removeChildPhoto(editingChildProfile.id)
+                        }
+                        setEditChildForm(f => ({ ...f, photoUrl: url ?? '' }))
+                        setChildren(prev => prev.map(c =>
+                          c.id === editingChildProfile.id ? { ...c, photoUrl: url ?? undefined } : c
+                        ))
+                      } catch {
+                        alert('❌ Erreur sauvegarde photo')
+                      }
+                    }}
+                  />
+                </div>
+                {/* Nom */}
+                <div>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Prénom</label>
+                  <input type="text" value={editChildForm.name}
+                    onChange={e => setEditChildForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
+                </div>
+                {/* Date de naissance */}
+                <div>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Date de naissance</label>
+                  <input type="date" value={editChildForm.birthDate}
+                    onChange={e => setEditChildForm(f => ({ ...f, birthDate: e.target.value }))}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
+                </div>
+                {/* Classe */}
+                <div>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Classe</label>
+                  <input type="text" placeholder="Ex : CM1, 6ème, Maternelle…" value={editChildForm.classe}
+                    onChange={e => setEditChildForm(f => ({ ...f, classe: e.target.value }))}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
+                </div>
+                {/* Stats (lecture seule) */}
+                <div className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center">
+                  <div><p className="text-lg font-black text-kids-orange">{editingChildProfile.level}</p><p className="text-xs text-gray-400 font-semibold">Niveau</p></div>
+                  <div><p className="text-lg font-black text-yellow-500">{editingChildProfile.xp}</p><p className="text-xs text-gray-400 font-semibold">XP total</p></div>
+                  <div><p className="text-lg font-black text-orange-500">{editingChildProfile.streakDays}j</p><p className="text-xs text-gray-400 font-semibold">Série</p></div>
+                </div>
+              </div>
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setEditingChildProfile(null)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl">
+                  Annuler
+                </button>
+                <button onClick={saveChildProfile}
+                  className="flex-1 py-3 bg-kids-orange text-white font-black rounded-2xl shadow-md">
+                  ✓ Sauvegarder
                 </button>
               </div>
             </motion.div>
