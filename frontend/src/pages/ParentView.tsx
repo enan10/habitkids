@@ -461,13 +461,10 @@ export default function ParentView() {
     if (!editingChildProfile) return
     try {
       await api.patch(`/children/${editingChildProfile.id}`, {
-        name: editChildForm.name,
+        name: editChildForm.name || undefined,
         classe: editChildForm.classe || undefined,
         birthDate: editChildForm.birthDate || undefined,
-        photoUrl: editChildForm.photoUrl || null,
       })
-      if (editChildForm.photoUrl) setChildPhoto(editingChildProfile.id, editChildForm.photoUrl)
-      else removeChildPhoto(editingChildProfile.id)
       setEditingChildProfile(null)
       fetchChildren()
     } catch {
