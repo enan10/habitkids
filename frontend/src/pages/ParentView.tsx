@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, Reorder, useDragControls } from 'framer-motion'
+import { motion, Reorder, useDragControls, AnimatePresence } from 'framer-motion'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
 import HabitForm, { CATEGORIES } from '../components/parent/HabitForm'
@@ -92,10 +92,35 @@ function getCategoryInfo(id: string) {
   return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
 }
 
-function HabitRow({ habit, onDragEnd, onDelete }: {
+function DonutChart({ pct, completed, total }: { pct: number; completed: number; total: number }) {
+  const r = 36
+  const circ = 2 * Math.PI * r
+  const dash = Math.min(1, pct / 100) * circ
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="88" height="88" viewBox="0 0 88 88">
+        <circle cx="44" cy="44" r={r} fill="none" stroke="#e5e7eb" strokeWidth="10" />
+        {completed > 0 && (
+          <circle cx="44" cy="44" r={r} fill="none" stroke="#22c55e" strokeWidth="10"
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+            transform="rotate(-90 44 44)" />
+        )}
+        <text x="44" y="49" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#374151">{pct}%</text>
+      </svg>
+      <div className="flex gap-3 text-xs mt-1">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{completed} faites</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />{total - completed} restantes</span>
+      </div>
+    </div>
+  )
+}
+
+function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
   habit: any
   onDragEnd: () => void
   onDelete: () => void
+  completedDates?: Set<string>
+  weekDays?: { date: string; label: string }[]
 }) {
   const controls = useDragControls()
   const cat = getCategoryInfo(habit.category || 'GENERAL')
@@ -105,31 +130,49 @@ function HabitRow({ habit, onDragEnd, onDelete }: {
       dragControls={controls}
       dragListener={false}
       onDragEnd={onDragEnd}
-      className="bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3"
+      className="bg-white rounded-2xl p-3 shadow-sm"
     >
-      <span
-        className="text-gray-300 text-lg select-none cursor-grab active:cursor-grabbing touch-none px-1"
-        onPointerDown={(e) => controls.start(e)}
-      >⠿</span>
-      <span className="text-2xl">{habit.emoji}</span>
-      <div className="flex-1 min-w-0">
-        <p className="font-bold text-gray-800 truncate">{habit.title}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            {cat.emoji} {cat.label}
-          </span>
-          <span className="text-xs text-gray-500">
-            ⭐ {habit.pointValue} ·{' '}
-            {(habit.daysOfWeek ?? []).length === 7
-              ? 'Quotidien'
-              : (habit.daysOfWeek ?? [])
-                  .sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
-                  .map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d])
-                  .join(' ')}
-          </span>
+      <div className="flex items-center gap-3">
+        <span
+          className="text-gray-300 text-lg select-none cursor-grab active:cursor-grabbing touch-none px-1"
+          onPointerDown={(e) => controls.start(e)}
+        >⠿</span>
+        <span className="text-2xl">{habit.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+          <p className="text-xs text-gray-400">
+            {cat.emoji} {cat.label} · {(habit.daysOfWeek ?? []).length === 7 ? 'Quotidien' : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d]).join(' ')}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-yellow-500">⭐ {habit.pointValue}</span>
+          <button onClick={onDelete} className="text-red-300 hover:text-red-500 p-1 text-lg">🗑️</button>
         </div>
       </div>
-      <button onClick={onDelete} className="text-red-400 hover:text-red-600 font-bold p-2 text-xl">🗑️</button>
+      {weekDays && completedDates && (
+        <div className="flex gap-1 mt-2 ml-10">
+          {weekDays.map(({ date, label }) => {
+            const dow = new Date(date + 'T12:00:00').getDay()
+            const scheduled = (habit.daysOfWeek ?? []).length === 7 || (habit.daysOfWeek ?? []).includes(dow)
+            const done = completedDates.has(date)
+            if (!scheduled) return (
+              <div key={date} className="flex flex-col items-center gap-0.5 opacity-30">
+                <span className="text-xs text-gray-400">{label}</span>
+                <div className="w-5 h-5 rounded-full border border-gray-200" />
+              </div>
+            )
+            return (
+              <div key={date} className="flex flex-col items-center gap-0.5">
+                <span className="text-xs text-gray-500 font-semibold">{label}</span>
+                {done
+                  ? <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"><span className="text-white text-xs">✓</span></div>
+                  : <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                }
+              </div>
+            )
+          })}
+        </div>
+      )}
     </Reorder.Item>
   )
 }
@@ -138,17 +181,20 @@ export default function ParentView() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
   const isPremium = user?.plan === 'PREMIUM'
+
+  // Core state
   const [children, setChildren] = useState<Child[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [tab, setTab] = useState<'habits' | 'stats' | 'rewards' | 'notifications'>('habits')
+  const [navTab, setNavTab] = useState<'accueil' | 'habitudes' | 'recompenses' | 'profil'>('accueil')
+
+  // Child management
+  const [showChildDropdown, setShowChildDropdown] = useState(false)
   const [showAddChild, setShowAddChild] = useState(false)
-  const [showHabitForm, setShowHabitForm] = useState(false)
   const [newChildForm, setNewChildForm] = useState({ name: '', classe: '', birthDate: '', photoUrl: '' })
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [rewards, setRewards] = useState<Reward[]>([])
-  const [rewardForm, setRewardForm] = useState({ title: '', emoji: '🎁', pointCost: 50 })
-  const [showRewardForm, setShowRewardForm] = useState(false)
   const [editingAvatar, setEditingAvatar] = useState(false)
+
+  // Habits
   const [habitsList, setHabitsList] = useState<any[]>([])
   const habitsListRef = useRef<any[]>([])
   const [habitsView, setHabitsView] = useState<'list' | 'parjour'>('list')
@@ -156,20 +202,54 @@ export default function ParentView() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
   const [addingPreset, setAddingPreset] = useState<string | null>(null)
-  const [showUpgrade, setShowUpgrade] = useState(false)
   const [addForDay, setAddForDay] = useState<number | null>(null)
+  const [showHabitForm] = useState(false)
 
-  const fetchChildren = async () => {
+  // Rewards
+  const [rewards, setRewards] = useState<Reward[]>([])
+  const [rewardForm, setRewardForm] = useState({ title: '', emoji: '🎁', pointCost: 50 })
+  const [showRewardForm, setShowRewardForm] = useState(false)
+
+  // Weekly data
+  const [weeklyCompletions, setWeeklyCompletions] = useState<any[]>([])
+  const [badgesCount, setBadgesCount] = useState(0)
+
+  // Misc
+  const [showUpgrade, setShowUpgrade] = useState(false)
+
+  // Last 7 days (Mon label = Lu, etc.)
+  const last7Days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400000)
+    return {
+      date: d.toISOString().split('T')[0],
+      label: ['Di','Lu','Ma','Me','Je','Ve','Sa'][d.getDay()],
+    }
+  }), [])
+
+  const fetchChildren = useCallback(async () => {
     const res = await api.get('/children')
     const merged = mergePhotos(res.data as Child[])
     setChildren(merged)
     if (!activeId && merged.length > 0) setActiveId(merged[0].id)
-  }
+  }, [activeId])
 
-  const fetchRewards = async (childId: string) => {
+  const fetchRewards = useCallback(async (childId: string) => {
     const res = await api.get(`/rewards/${childId}`)
     setRewards(res.data)
-  }
+  }, [])
+
+  const fetchWeeklyData = useCallback(async (childId: string) => {
+    const to = new Date().toISOString().split('T')[0]
+    const from = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0]
+    try {
+      const [compRes, badgesRes] = await Promise.all([
+        api.get(`/completions/range/${childId}?from=${from}&to=${to}`),
+        api.get(`/badges/${childId}`),
+      ])
+      setWeeklyCompletions(compRes.data)
+      setBadgesCount((badgesRes.data as any[]).filter(b => b.earned).length)
+    } catch {}
+  }, [])
 
   useEffect(() => { fetchChildren() }, [])
 
@@ -179,16 +259,39 @@ export default function ParentView() {
     habitsListRef.current = habits
   }, [activeId, children])
 
-  const saveHabitOrder = async (newList: any[]) => {
-    await Promise.all(newList.map((h, i) => api.patch(`/habits/${h.id}`, { order: i })))
-    fetchChildren()
-  }
-
   useEffect(() => {
-    if (activeId && tab === 'rewards') fetchRewards(activeId)
-  }, [activeId, tab])
+    if (activeId) {
+      fetchWeeklyData(activeId)
+      fetchRewards(activeId)
+    }
+  }, [activeId])
 
   const activeChild = children.find(c => c.id === activeId)
+
+  // Weekly stats computed
+  const weeklyPoints = weeklyCompletions.reduce((s, c) => s + c.pointsEarned, 0)
+  const completedByHabit = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    weeklyCompletions.forEach(c => {
+      if (!map.has(c.habitId)) map.set(c.habitId, new Set())
+      map.get(c.habitId)!.add(c.date)
+    })
+    return map
+  }, [weeklyCompletions])
+
+  const todayHabits = useMemo(() => {
+    const todayDow = new Date().getDay()
+    return (activeChild?.habits ?? []).filter((h: any) =>
+      (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(todayDow)
+    )
+  }, [activeChild])
+
+  const todayCompleted = todayHabits.filter((h: any) => {
+    const today = new Date().toISOString().split('T')[0]
+    return completedByHabit.get(h.id)?.has(today)
+  }).length
+
+  const weeklyPct = todayHabits.length > 0 ? Math.round((todayCompleted / todayHabits.length) * 100) : 0
 
   const usedCategories = useMemo(() => {
     const cats = new Set((activeChild?.habits ?? []).map((h: any) => h.category || 'GENERAL'))
@@ -206,6 +309,11 @@ export default function ParentView() {
       .filter((h: any) => categoryFilter === 'ALL' || (h.category || 'GENERAL') === categoryFilter)
   }
 
+  const saveHabitOrder = async (newList: any[]) => {
+    await Promise.all(newList.map((h, i) => api.patch(`/habits/${h.id}`, { order: i })))
+    fetchChildren()
+  }
+
   const addChild = async (e: React.FormEvent) => {
     e.preventDefault()
     const res = await api.post('/children', {
@@ -216,9 +324,7 @@ export default function ParentView() {
       birthDate: newChildForm.birthDate || undefined,
       photoUrl: newChildForm.photoUrl || undefined,
     })
-    if (newChildForm.photoUrl && res.data?.id) {
-      setChildPhoto(res.data.id, newChildForm.photoUrl)
-    }
+    if (newChildForm.photoUrl && res.data?.id) setChildPhoto(res.data.id, newChildForm.photoUrl)
     setNewChildForm({ name: '', classe: '', birthDate: '', photoUrl: '' })
     setShowAddChild(false)
     fetchChildren()
@@ -242,8 +348,7 @@ export default function ParentView() {
     if (newDays.length === 0) {
       await api.delete(`/habits/${habitId}`)
     } else {
-      const frequency = newDays.length === 7 ? 'DAILY' : 'WEEKLY'
-      await api.patch(`/habits/${habitId}`, { daysOfWeek: newDays, frequency })
+      await api.patch(`/habits/${habitId}`, { daysOfWeek: newDays, frequency: newDays.length === 7 ? 'DAILY' : 'WEEKLY' })
     }
     fetchChildren()
   }
@@ -252,11 +357,11 @@ export default function ParentView() {
     if (!activeId) return
     setAddingPreset(preset.title)
     try {
-      // If adding from a specific day, use only that day
       const daysOfWeek = addForDay !== null ? [addForDay] : preset.daysOfWeek
       const frequency = daysOfWeek.length === 7 ? 'DAILY' : 'WEEKLY'
       await api.post('/habits', { ...preset, daysOfWeek, frequency, childId: activeId })
       fetchChildren()
+      fetchWeeklyData(activeId)
     } catch (err: any) {
       if (err.response?.data?.upgrade || err.response?.data?.error?.includes('Maximum')) setShowUpgrade(true)
       else alert(err.response?.data?.error || 'Erreur')
@@ -283,76 +388,517 @@ export default function ParentView() {
     if (activeId) fetchRewards(activeId)
   }
 
-  const TABS = [
-    { id: 'habits',        label: '📋 Habitudes' },
-    { id: 'rewards',       label: '🎁 Récompenses' },
-  ]
+  const greeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Bonjour'
+    if (h < 18) return 'Bonne après-midi'
+    return 'Bonsoir'
+  }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
-
-      {/* Header simplifié */}
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-base font-black text-gray-800">Espace Parent</h1>
-            <p className="text-xs text-gray-400 font-semibold">{user?.name}</p>
-          </div>
-        </div>
-        <div className="flex gap-2 items-center">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/child')}
-            className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
-            Vue enfant
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={logout}
-            className="bg-gray-100 text-gray-600 font-bold px-3 py-2 rounded-xl text-sm">
-            🚪
-          </motion.button>
-        </div>
-      </div>
-
-      <div className="p-4 max-w-md mx-auto">
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-          {children.map(child => (
-            <div key={child.id} className="relative flex-shrink-0">
-              <button onClick={() => setActiveId(child.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
-                  activeId === child.id ? 'bg-kids-orange text-white shadow-md' : 'bg-white text-gray-600 border-2 border-gray-200'
-                }`}>
-                {child.photoUrl
-                  ? <img src={child.photoUrl} className="w-6 h-6 rounded-full object-cover" />
-                  : <span>{child.avatarEmoji}</span>
-                }
-                {child.name}
+  // ── Suggestions panel (modal overlay) ──────────────────────────────────────
+  const SuggestionsPanel = () => (
+    <AnimatePresence>
+      {showSuggestions && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/40 z-50 flex items-end"
+          onClick={() => setShowSuggestions(false)}>
+          <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
+            className="w-full bg-white rounded-t-3xl p-4 max-h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-black text-gray-800 text-base">💡 Ajouter une habitude</span>
+              <button onClick={() => setShowSuggestions(false)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+            </div>
+            {/* Category filter */}
+            <div className="flex gap-2 mb-3 overflow-x-auto pb-1 flex-shrink-0">
+              <button onClick={() => setSuggestCatFilter('ALL')}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
+                Tous
               </button>
-              {activeId === child.id && (
-                <button onClick={() => setConfirmDeleteId(child.id)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center shadow">
-                  ✕
+              {CATEGORIES.map(cat => (
+                <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
+                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
+                  {cat.emoji} {cat.label}
                 </button>
-              )}
+              ))}
+            </div>
+            {/* Habit list */}
+            <div className="space-y-1.5 overflow-y-auto flex-1">
+              {PRESET_HABITS
+                .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
+                .map(preset => {
+                  const cat = getCategoryInfo(preset.category)
+                  const alreadyAdded = (activeChild?.habits ?? []).some((h: any) => h.title === preset.title)
+                  return (
+                    <div key={preset.title}
+                      className={`flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 ${alreadyAdded ? 'opacity-50' : ''}`}>
+                      <span className="text-xl">{preset.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
+                        <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
+                      </div>
+                      {alreadyAdded
+                        ? <span className="text-green-400 font-bold text-lg">✓</span>
+                        : <motion.button whileTap={{ scale: 0.9 }}
+                            disabled={addingPreset === preset.title}
+                            onClick={() => addPresetHabit(preset)}
+                            className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow disabled:opacity-50">
+                            {addingPreset === preset.title ? '⏳' : '+'}
+                          </motion.button>
+                      }
+                    </div>
+                  )
+                })}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
+  // ── Accueil tab ─────────────────────────────────────────────────────────────
+  const AccueilTab = () => {
+    if (!activeChild) return null
+    const showLimit = 5
+    return (
+      <div className="space-y-4">
+        {/* Stats card */}
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { icon: '⭐', value: weeklyPoints, label: 'Points cette semaine', color: 'bg-yellow-50 border-yellow-200', textColor: 'text-yellow-600' },
+            { icon: '✅', value: `${weeklyCompletions.length}`, label: 'Complétées cette semaine', color: 'bg-green-50 border-green-200', textColor: 'text-green-600' },
+            { icon: '🔥', value: activeChild.streakDays, label: 'Jours de série', color: 'bg-orange-50 border-orange-200', textColor: 'text-orange-600' },
+            { icon: '🏆', value: badgesCount, label: 'Badges obtenus', color: 'bg-purple-50 border-purple-200', textColor: 'text-purple-600' },
+          ].map(s => (
+            <div key={s.label} className={`rounded-2xl p-4 border-2 ${s.color}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{s.icon}</span>
+              </div>
+              <p className={`text-2xl font-black ${s.textColor}`}>{s.value}</p>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5">{s.label}</p>
             </div>
           ))}
-          <button onClick={() => setShowAddChild(true)}
-            className="flex items-center gap-1 px-4 py-2 rounded-full font-bold text-sm bg-white text-kids-teal border-2 border-kids-teal whitespace-nowrap">
-            + Enfant
-          </button>
         </div>
 
+        {/* Today's habits */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-50">
+            <div>
+              <h3 className="font-black text-gray-800">Mes habitudes</h3>
+              <p className="text-xs text-gray-400">{todayHabits.length} habitudes</p>
+            </div>
+            <button onClick={() => setNavTab('habitudes')}
+              className="text-xs text-kids-orange font-bold">
+              Tout voir →
+            </button>
+          </div>
+          {/* Category pills */}
+          {usedCategories.length > 1 && (
+            <div className="flex gap-2 px-4 py-2 overflow-x-auto border-b border-gray-50">
+              <button onClick={() => setCategoryFilter('ALL')}
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold ${categoryFilter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                Toutes
+              </button>
+              {usedCategories.map(catId => {
+                const cat = getCategoryInfo(catId)
+                return (
+                  <button key={catId} onClick={() => setCategoryFilter(catId)}
+                    className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${categoryFilter === catId ? 'bg-kids-orange text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    {cat.emoji} {cat.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {/* Habit list with 7-day circles */}
+          <div className="divide-y divide-gray-50">
+            {todayHabits
+              .filter((h: any) => categoryFilter === 'ALL' || (h.category || 'GENERAL') === categoryFilter)
+              .slice(0, showLimit)
+              .map((habit: any) => {
+                const cat = getCategoryInfo(habit.category || 'GENERAL')
+                const completed = completedByHabit.get(habit.id) ?? new Set()
+                return (
+                  <div key={habit.id} className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{habit.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                        <p className="text-xs text-gray-400">{cat.emoji} {cat.label}</p>
+                      </div>
+                      <span className="text-xs font-bold text-yellow-500">⭐ {habit.pointValue}</span>
+                    </div>
+                    {/* 7-day circles */}
+                    <div className="flex gap-1.5 mt-2 ml-11">
+                      {last7Days.map(({ date, label }) => {
+                        const dow = new Date(date + 'T12:00:00').getDay()
+                        const scheduled = (habit.daysOfWeek ?? []).length === 7 || (habit.daysOfWeek ?? []).includes(dow)
+                        const done = completed.has(date)
+                        return (
+                          <div key={date} className="flex flex-col items-center gap-0.5">
+                            <span className={`text-xs font-bold ${scheduled ? 'text-gray-500' : 'text-gray-200'}`}>{label}</span>
+                            {done
+                              ? <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"><span className="text-white text-xs font-bold">✓</span></div>
+                              : scheduled
+                                ? <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                                : <div className="w-5 h-5 rounded-full border border-gray-100 opacity-30" />
+                            }
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+          {todayHabits.length > showLimit && (
+            <button onClick={() => setNavTab('habitudes')}
+              className="w-full py-3 text-sm text-kids-orange font-bold border-t border-gray-50">
+              Voir toutes les habitudes ({todayHabits.length}) →
+            </button>
+          )}
+          {todayHabits.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-4xl mb-2">🌱</p>
+              <p className="text-sm text-gray-400 font-semibold">Aucune habitude pour aujourd'hui</p>
+              <button onClick={() => setShowSuggestions(true)}
+                className="mt-3 bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
+                + Ajouter
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Weekly progress + streak */}
+        <div className="flex gap-3">
+          <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
+            <p className="font-black text-gray-800 text-sm mb-2">Série actuelle</p>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl">🔥</span>
+              <div>
+                <p className="text-2xl font-black text-orange-500">{activeChild.streakDays}</p>
+                <p className="text-xs text-gray-400">jours</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">🐉 {activeChild.streakDays > 0 ? 'Bravo ! Continue !' : 'Lance ta série !'}</p>
+          </div>
+          <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
+            <p className="font-black text-gray-800 text-sm mb-2">Aujourd'hui</p>
+            <DonutChart pct={weeklyPct} completed={todayCompleted} total={todayHabits.length} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Habitudes tab ────────────────────────────────────────────────────────────
+  const HabitudesTab = () => {
+    if (!activeChild) return null
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <h3 className="font-black text-gray-700">Habitudes</h3>
+            <p className="text-xs text-gray-400">{activeChild.habits?.length ?? 0} habitude{(activeChild.habits?.length ?? 0) !== 1 ? 's' : ''}</p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
+              className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
+              {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
+            </button>
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSuggestions(true)}
+              className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
+              + Ajouter
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Category filter */}
+        {usedCategories.length > 1 && (
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            <button onClick={() => setCategoryFilter('ALL')}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${categoryFilter === 'ALL' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}>
+              Toutes
+            </button>
+            {usedCategories.map(catId => {
+              const cat = getCategoryInfo(catId)
+              return (
+                <button key={catId} onClick={() => setCategoryFilter(catId)}
+                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${categoryFilter === catId ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
+                  {cat.emoji} {cat.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* List view with drag */}
+        {habitsView === 'list' && (
+          <Reorder.Group axis="y" values={filteredHabits}
+            onReorder={newList => { setHabitsList(newList); habitsListRef.current = newList }}
+            className="space-y-2">
+            {filteredHabits.map(habit => (
+              <HabitRow
+                key={habit.id}
+                habit={habit}
+                onDragEnd={() => saveHabitOrder(habitsListRef.current)}
+                onDelete={() => deleteHabit(habit.id)}
+                completedDates={completedByHabit.get(habit.id)}
+                weekDays={last7Days}
+              />
+            ))}
+          </Reorder.Group>
+        )}
+
+        {/* Par jour view */}
+        {habitsView === 'parjour' && (
+          <div className="space-y-3">
+            {WEEK_DAYS.map(({ label, short, day }) => {
+              const dayHabits = habitsForDay(day)
+              return (
+                <div key={day} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
+                    <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">{short}</span>
+                    <span className="font-bold text-gray-700 text-sm">{label}</span>
+                    <span className="text-xs text-gray-400 font-semibold">{dayHabits.length} habitude{dayHabits.length !== 1 ? 's' : ''}</span>
+                    <motion.button whileTap={{ scale: 0.9 }}
+                      onClick={() => { setAddForDay(day); setShowSuggestions(true) }}
+                      className="ml-auto w-7 h-7 bg-kids-teal text-white font-black text-base rounded-full flex items-center justify-center shadow-sm">
+                      +
+                    </motion.button>
+                  </div>
+                  {dayHabits.length === 0
+                    ? <p className="px-4 py-3 text-sm text-gray-400 italic">Aucune habitude ce jour</p>
+                    : <div className="divide-y divide-gray-50">
+                        {dayHabits.map((habit: any) => {
+                          const cat = getCategoryInfo(habit.category || 'GENERAL')
+                          return (
+                            <div key={habit.id} className="flex items-center gap-3 px-4 py-2.5">
+                              <span className="text-xl">{habit.emoji}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                                <span className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {habit.pointValue}</span>
+                              </div>
+                              <button onClick={() => removeHabitFromDay(habit.id, day, habit.daysOfWeek ?? [])}
+                                className="text-red-300 hover:text-red-500 p-1">🗑️</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                  }
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {activeChild.habits?.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-5xl mb-3">🌱</p>
+            <p className="font-bold text-gray-500">Pas encore d'habitudes</p>
+            <button onClick={() => setShowSuggestions(true)}
+              className="mt-3 bg-kids-teal text-white font-bold px-6 py-3 rounded-xl">
+              + Ajouter une habitude
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── Récompenses tab ──────────────────────────────────────────────────────────
+  const RecompensesTab = () => {
+    if (!activeChild) return null
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-black text-gray-700">Récompenses</h3>
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowRewardForm(true)}
+            className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
+            + Ajouter
+          </motion.button>
+        </div>
+        {showRewardForm && (
+          <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+            onSubmit={addReward} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
+            <div className="flex gap-2">
+              <input type="text" placeholder="🎁" value={rewardForm.emoji}
+                onChange={e => setRewardForm(f => ({ ...f, emoji: e.target.value }))}
+                className="w-16 p-3 border-2 border-gray-200 rounded-xl text-center text-xl" />
+              <input type="text" placeholder="Nom de la récompense" value={rewardForm.title}
+                onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))}
+                className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold" required />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="font-semibold text-gray-600 text-sm">⭐ Points :</label>
+              <input type="number" value={rewardForm.pointCost} min={1}
+                onChange={e => setRewardForm(f => ({ ...f, pointCost: Number(e.target.value) }))}
+                className="w-24 p-3 border-2 border-gray-200 rounded-xl font-semibold" />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">✓ Sauvegarder</button>
+              <button type="button" onClick={() => setShowRewardForm(false)} className="px-4 bg-gray-100 text-gray-500 font-bold rounded-xl">✕</button>
+            </div>
+          </motion.form>
+        )}
+        <div className="space-y-2">
+          {rewards.map(r => (
+            <div key={r.id} className={`rounded-2xl p-3 shadow-sm flex items-center gap-3 ${r.isUnlocked ? 'bg-green-50 border-2 border-green-200' : 'bg-white'}`}>
+              <span className="text-2xl">{r.emoji}</span>
+              <div className="flex-1">
+                <p className="font-bold text-gray-800">{r.title}</p>
+                <p className="text-sm text-gray-500">⭐ {r.pointCost} points</p>
+              </div>
+              {r.isUnlocked
+                ? <span className="text-green-500 font-bold text-sm">✅ Débloqué</span>
+                : <button onClick={() => unlockReward(r.id)}
+                    disabled={activeChild.xp < r.pointCost}
+                    className="bg-kids-orange text-white font-bold px-3 py-1 rounded-xl text-sm disabled:opacity-40">
+                    Débloquer
+                  </button>
+              }
+            </div>
+          ))}
+          {rewards.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-4xl mb-2">🎁</p>
+              <p className="font-semibold">Aucune récompense</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Profil tab ───────────────────────────────────────────────────────────────
+  const ProfilTab = () => (
+    <div className="space-y-4">
+      {/* Parent info */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-kids-orange flex items-center justify-center text-white text-2xl font-black">
+          {user?.name?.[0]?.toUpperCase()}
+        </div>
+        <div className="flex-1">
+          <p className="font-black text-gray-800">{user?.name}</p>
+          <p className="text-sm text-gray-400">{user?.email}</p>
+          {isPremium && <span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full">✨ Premium</span>}
+        </div>
+        {!isPremium && (
+          <button onClick={() => setShowUpgrade(true)}
+            className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-2 rounded-xl text-xs">
+            ⭐ Premium
+          </button>
+        )}
+      </div>
+
+      {/* Stats section */}
+      {activeChild && (
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <p className="px-4 pt-4 font-black text-gray-700 text-sm">📊 Statistiques</p>
+          <StatsView childId={activeChild.id} childName={activeChild.name} isPremium={isPremium} onUpgrade={() => setShowUpgrade(true)} />
+        </div>
+      )}
+
+      {/* Notifications */}
+      {activeChild && (
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <p className="px-4 pt-4 font-black text-gray-700 text-sm">🔔 Rappels</p>
+          <div className="p-4">
+            <NotificationSettings childId={activeChild.id} />
+          </div>
+        </div>
+      )}
+
+      {/* Logout */}
+      <button onClick={logout}
+        className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-2xl border-2 border-red-100">
+        🚪 Se déconnecter
+      </button>
+    </div>
+  )
+
+  // ── Main render ──────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      <SuggestionsPanel />
+
+      {/* Header */}
+      <div className="bg-white shadow-sm px-4 py-3 sticky top-0 z-40">
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          <div>
+            <p className="text-xs text-gray-400 font-semibold">{greeting()} 👋</p>
+            <button
+              onClick={() => setShowChildDropdown(v => !v)}
+              className="flex items-center gap-1 font-black text-gray-800 text-base">
+              {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
+              {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeChild?.photoUrl
+              ? <img src={activeChild.photoUrl} className="w-10 h-10 rounded-full object-cover border-2 border-kids-orange" />
+              : <div className="w-10 h-10 rounded-full bg-kids-orange flex items-center justify-center text-white font-black text-lg">
+                  {activeChild?.avatarEmoji ?? user?.name?.[0]?.toUpperCase()}
+                </div>
+            }
+          </div>
+        </div>
+
+        {/* Child dropdown */}
+        <AnimatePresence>
+          {showChildDropdown && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="absolute top-full left-0 right-0 bg-white shadow-xl border-t border-gray-100 z-50 p-3">
+              <div className="max-w-md mx-auto space-y-1">
+                {children.map(c => (
+                  <button key={c.id} onClick={() => { setActiveId(c.id); setShowChildDropdown(false) }}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeId === c.id ? 'bg-kids-orange/10' : 'hover:bg-gray-50'}`}>
+                    {c.photoUrl
+                      ? <img src={c.photoUrl} className="w-9 h-9 rounded-full object-cover" />
+                      : <span className="text-2xl">{c.avatarEmoji}</span>
+                    }
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-gray-800">{c.name}</p>
+                      <p className="text-xs text-gray-400">Niv. {c.level} · {c.xp} XP · {c.streakDays}j</p>
+                    </div>
+                    {activeId === c.id && <span className="text-kids-orange font-bold">✓</span>}
+                    <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.id) }}
+                      className="w-6 h-6 bg-red-100 text-red-400 rounded-full text-xs flex items-center justify-center">✕</button>
+                  </button>
+                ))}
+                <button onClick={() => { setShowAddChild(true); setShowChildDropdown(false) }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-kids-teal font-bold hover:bg-gray-50">
+                  <span className="w-9 h-9 border-2 border-dashed border-kids-teal rounded-full flex items-center justify-center text-lg">+</span>
+                  Ajouter un enfant
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Click outside to close dropdown */}
+      {showChildDropdown && <div className="fixed inset-0 z-30" onClick={() => setShowChildDropdown(false)} />}
+
+      {/* Main content */}
+      <div className="p-4 max-w-md mx-auto">
+        {/* Confirm delete child */}
         {confirmDeleteId && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 shadow-md mb-4">
-            <p className="font-bold text-red-700 mb-3">⚠️ Supprimer cet enfant ? Toutes ses habitudes et données seront perdues.</p>
+            <p className="font-bold text-red-700 mb-3">⚠️ Supprimer cet enfant ? Toutes ses données seront perdues.</p>
             <div className="flex gap-2">
-              <button onClick={() => deleteChild(confirmDeleteId)}
-                className="flex-1 bg-red-500 text-white font-bold py-2 rounded-xl">Supprimer</button>
-              <button onClick={() => setConfirmDeleteId(null)}
-                className="flex-1 bg-gray-100 text-gray-600 font-bold py-2 rounded-xl">Annuler</button>
+              <button onClick={() => deleteChild(confirmDeleteId)} className="flex-1 bg-red-500 text-white font-bold py-2 rounded-xl">Supprimer</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-2 rounded-xl">Annuler</button>
             </div>
           </motion.div>
         )}
 
+        {/* Add child form */}
         {showAddChild && (
           <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             onSubmit={addChild} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
@@ -373,7 +919,7 @@ export default function ParentView() {
               </div>
               <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">Classe</label>
-                <input type="text" placeholder="Ex: CM1, 6ème…" value={newChildForm.classe}
+                <input type="text" placeholder="Ex: CM1" value={newChildForm.classe}
                   onChange={e => setNewChildForm(f => ({ ...f, classe: e.target.value }))}
                   className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" />
               </div>
@@ -385,344 +931,103 @@ export default function ParentView() {
           </motion.form>
         )}
 
-        {activeChild && (
-          <>
-            <div className="flex gap-2 mb-4">
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id as any)}
-                  className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${
-                    tab === t.id
-                      ? 'bg-kids-orange text-white shadow-md'
-                      : 'bg-white text-gray-500 shadow-sm'
-                  }`}>
-                  {t.label}
-                </button>
-              ))}
+        {/* Child profile compact (visible on all tabs) */}
+        {activeChild && (navTab === 'habitudes' || navTab === 'recompenses') && (
+          <div className="bg-white rounded-2xl p-3 shadow-sm mb-4 flex items-center gap-3">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)}>
+              {activeChild.photoUrl
+                ? <img src={activeChild.photoUrl} className="w-12 h-12 rounded-full object-cover border-2 border-kids-orange" />
+                : <span className="text-3xl">{activeChild.avatarEmoji}</span>
+              }
+            </motion.button>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-gray-800">{activeChild.name}</p>
+              <p className="text-xs text-gray-400">Niv. {activeChild.level} · {activeChild.xp} XP · {activeChild.streakDays}j</p>
             </div>
-
-            {/* Profil enfant compact */}
-            <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-              <div className="flex items-center gap-3">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)}>
-                  {activeChild.photoUrl
-                    ? <img src={activeChild.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-kids-orange" />
-                    : <span className="text-4xl">{activeChild.avatarEmoji}</span>
-                  }
-                </motion.button>
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-black text-gray-800 text-base">{activeChild.name}</h2>
-                  <p className="text-xs text-gray-400 font-semibold">
-                    Niv. {activeChild.level} · {activeChild.xp} XP · {activeChild.streakDays}j
-                    {activeChild.classe ? ` · ${activeChild.classe}` : ''}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1 items-end">
-                  <button onClick={() => setEditingAvatar(v => !v)}
-                    className="text-xs text-kids-blue font-bold px-2 py-1 rounded-lg bg-blue-50">
-                    {editingAvatar ? '✓ Fermer' : '📷 Photo'}
-                  </button>
-                  <button onClick={() => setTab('stats' as any)}
-                    className="text-xs text-gray-400 font-bold px-2 py-1 rounded-lg bg-gray-50">
-                    📊 Stats
-                  </button>
-                  <button onClick={() => setTab('notifications' as any)}
-                    className="text-xs text-gray-400 font-bold px-2 py-1 rounded-lg bg-gray-50">
-                    🔔 Rappels
-                  </button>
-                </div>
-              </div>
-              {editingAvatar && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <PhotoPicker
-                    photoUrl={activeChild.photoUrl}
-                    onPhotoChange={async (url) => {
-                      try {
-                        await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
-                        if (url) setChildPhoto(activeChild.id, url)
-                        else removeChildPhoto(activeChild.id)
-                        setChildren(prev => prev.map(c =>
-                          c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c
-                        ))
-                        setEditingAvatar(false)
-                      } catch {
-                        alert('❌ Erreur : photo non sauvegardée. Vérifiez votre connexion.')
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {tab === 'habits' && (
-              <div>
-                {/* Header row */}
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h3 className="font-black text-gray-700">Habitudes</h3>
-                    <p className="text-xs text-gray-400">{activeChild.habits?.length ?? 0} habitude{(activeChild.habits?.length ?? 0) !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
-                      className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
-                      {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
-                    </button>
-                    <motion.button whileTap={{ scale: 0.95 }}
-                      onClick={() => { setAddForDay(null); setShowSuggestions(v => !v); setShowHabitForm(false) }}
-                      className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
-                      + Ajouter
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* Add panel: suggestions */}
-                {showSuggestions && (
-                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-                    className="bg-orange-50 border-2 border-kids-orange/30 rounded-2xl p-4 mb-4">
-                    {addForDay !== null && (
-                      <div className="flex items-center gap-2 mb-3 bg-kids-blue/10 rounded-xl px-3 py-2">
-                        <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">
-                          {WEEK_DAYS.find(d => d.day === addForDay)?.short}
-                        </span>
-                        <span className="text-sm font-bold text-kids-blue">
-                          Habitude pour {WEEK_DAYS.find(d => d.day === addForDay)?.label} uniquement
-                        </span>
-                        <button onClick={() => setAddForDay(null)} className="ml-auto text-xs text-gray-400 font-bold">Tous les jours</button>
-                      </div>
-                    )}
-
-                    {/* Header panel */}
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="font-bold text-gray-700 text-sm">💡 Suggestions d'habitudes</span>
-                      <button
-                        onClick={() => { setShowSuggestions(false); setShowHabitForm(false) }}
-                        className="px-3 py-2 bg-white text-gray-400 border-2 border-gray-200 rounded-xl font-bold text-sm">
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Suggestions list */}
-                    <>
-                        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-                          <button onClick={() => setSuggestCatFilter('ALL')}
-                            className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
-                            Tous
-                          </button>
-                          {CATEGORIES.map(cat => (
-                            <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
-                              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
-                              {cat.emoji} {cat.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                          {PRESET_HABITS
-                            .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
-                            .map(preset => {
-                              const cat = getCategoryInfo(preset.category)
-                              const alreadyAdded = (activeChild.habits ?? []).some((h: any) => h.title === preset.title)
-                              return (
-                                <div key={preset.title}
-                                  className={`flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 shadow-sm ${alreadyAdded ? 'opacity-50' : ''}`}>
-                                  <span className="text-xl">{preset.emoji}</span>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
-                                    <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
-                                  </div>
-                                  {alreadyAdded ? (
-                                    <span className="text-green-400 font-bold">✓</span>
-                                  ) : (
-                                    <motion.button whileTap={{ scale: 0.9 }}
-                                      disabled={addingPreset === preset.title}
-                                      onClick={() => addPresetHabit(preset)}
-                                      className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow disabled:opacity-50">
-                                      {addingPreset === preset.title ? '⏳' : '+'}
-                                    </motion.button>
-                                  )}
-                                </div>
-                              )
-                            })}
-                        </div>
-                    </>
-
-                  </motion.div>
-                )}
-
-                {/* Category filter chips */}
-                {usedCategories.length > 1 && (
-                  <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setCategoryFilter('ALL')}
-                      className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
-                        categoryFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'
-                      }`}
-                    >
-                      Tous
-                    </button>
-                    {usedCategories.map(catId => {
-                      const cat = getCategoryInfo(catId)
-                      return (
-                        <button
-                          key={catId}
-                          onClick={() => setCategoryFilter(catId)}
-                          className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
-                            categoryFilter === catId ? 'bg-kids-blue text-white border-kids-blue' : 'bg-white text-gray-500 border-gray-200'
-                          }`}
-                        >
-                          {cat.emoji} {cat.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* List view */}
-                {habitsView === 'list' && (
-                  <Reorder.Group
-                    axis="y"
-                    values={filteredHabits}
-                    onReorder={newList => {
-                      setHabitsList(newList)
-                      habitsListRef.current = newList
-                    }}
-                    className="space-y-2"
-                  >
-                    {filteredHabits.map(habit => (
-                      <HabitRow
-                        key={habit.id}
-                        habit={habit}
-                        onDragEnd={() => saveHabitOrder(habitsListRef.current)}
-                        onDelete={() => deleteHabit(habit.id)}
-                      />
-                    ))}
-                  </Reorder.Group>
-                )}
-
-                {/* Par jour view */}
-                {habitsView === 'parjour' && (
-                  <div className="space-y-3">
-                    {WEEK_DAYS.map(({ label, short, day }) => {
-                      const dayHabits = habitsForDay(day)
-                      return (
-                        <div key={day} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
-                            <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">
-                              {short}
-                            </span>
-                            <span className="font-bold text-gray-700 text-sm">{label}</span>
-                            <span className="text-xs text-gray-400 font-semibold">{dayHabits.length} habitude{dayHabits.length !== 1 ? 's' : ''}</span>
-                            <motion.button
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => {
-                                setAddForDay(day)
-                                setShowSuggestions(true)
-                                setShowHabitForm(false)
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                              }}
-                              className="ml-auto w-7 h-7 bg-kids-teal text-white font-black text-base rounded-full flex items-center justify-center shadow-sm">
-                              +
-                            </motion.button>
-                          </div>
-                          {dayHabits.length === 0 ? (
-                            <p className="px-4 py-3 text-sm text-gray-400 italic">Aucune habitude ce jour</p>
-                          ) : (
-                            <div className="divide-y divide-gray-50">
-                              {dayHabits.map((habit: any) => {
-                                const cat = getCategoryInfo(habit.category || 'GENERAL')
-                                return (
-                                  <div key={habit.id} className="flex items-center gap-3 px-4 py-2.5">
-                                    <span className="text-xl">{habit.emoji}</span>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
-                                      <span className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {habit.pointValue}</span>
-                                    </div>
-                                    <button onClick={() => removeHabitFromDay(habit.id, day, habit.daysOfWeek ?? [])} className="text-red-300 hover:text-red-500 p-1">🗑️</button>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-              </div>
-            )}
-
-            {tab === 'stats' && (
-              <StatsView
-                childId={activeChild.id}
-                childName={activeChild.name}
-                isPremium={isPremium}
-                onUpgrade={() => setShowUpgrade(true)}
-              />
-            )}
-            {tab === 'notifications' && <NotificationSettings childId={activeChild.id} />}
-
-            {tab === 'rewards' && (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-black text-gray-700">Récompenses</h3>
-                  <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowRewardForm(true)}
-                    className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
-                    + Ajouter
-                  </motion.button>
-                </div>
-                {showRewardForm && (
-                  <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-                    onSubmit={addReward} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
-                    <div className="flex gap-2">
-                      <input type="text" placeholder="🎁" value={rewardForm.emoji}
-                        onChange={e => setRewardForm(f => ({ ...f, emoji: e.target.value }))}
-                        className="w-16 p-3 border-2 border-gray-200 rounded-xl text-center text-xl" />
-                      <input type="text" placeholder="Nom de la récompense" value={rewardForm.title}
-                        onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))}
-                        className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold" required />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="font-semibold text-gray-600 text-sm">⭐ Points :</label>
-                      <input type="number" value={rewardForm.pointCost} min={1}
-                        onChange={e => setRewardForm(f => ({ ...f, pointCost: Number(e.target.value) }))}
-                        className="w-24 p-3 border-2 border-gray-200 rounded-xl font-semibold" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">✓ Sauvegarder</button>
-                      <button type="button" onClick={() => setShowRewardForm(false)} className="px-4 bg-gray-100 text-gray-500 font-bold rounded-xl">✕</button>
-                    </div>
-                  </motion.form>
-                )}
-                <div className="space-y-2">
-                  {rewards.map(r => (
-                    <div key={r.id} className={`rounded-2xl p-3 shadow-sm flex items-center gap-3 ${r.isUnlocked ? 'bg-green-50 border-2 border-green-200' : 'bg-white'}`}>
-                      <span className="text-2xl">{r.emoji}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-800">{r.title}</p>
-                        <p className="text-sm text-gray-500">⭐ {r.pointCost} points</p>
-                      </div>
-                      {r.isUnlocked
-                        ? <span className="text-green-500 font-bold text-sm">✅ Débloqué</span>
-                        : <button onClick={() => unlockReward(r.id)}
-                            disabled={activeChild.xp < r.pointCost}
-                            className="bg-kids-orange text-white font-bold px-3 py-1 rounded-xl text-sm disabled:opacity-40">
-                            Débloquer
-                          </button>
-                      }
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {children.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-5xl mb-3">👶</div>
-            <p className="font-bold text-gray-500">Ajoutez votre premier enfant !</p>
+            <button onClick={() => setEditingAvatar(v => !v)}
+              className="text-xs text-kids-blue font-bold px-2 py-1 rounded-lg bg-blue-50">
+              {editingAvatar ? '✓' : '📷'}
+            </button>
+            <button onClick={() => navigate('/child')}
+              className="text-xs text-kids-orange font-bold px-2 py-1 rounded-lg bg-orange-50">
+              Vue enfant
+            </button>
           </div>
         )}
+
+        {/* Photo editor */}
+        {editingAvatar && activeChild && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-4 shadow-md mb-4">
+            <PhotoPicker
+              photoUrl={activeChild.photoUrl}
+              onPhotoChange={async (url) => {
+                try {
+                  await api.patch(`/children/${activeChild.id}`, { photoUrl: url ?? null })
+                  if (url) setChildPhoto(activeChild.id, url)
+                  else removeChildPhoto(activeChild.id)
+                  setChildren(prev => prev.map(c => c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c))
+                  setEditingAvatar(false)
+                } catch {
+                  alert('❌ Erreur : photo non sauvegardée. Vérifiez votre connexion.')
+                }
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* Tab content */}
+        {children.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-5xl mb-3">👶</p>
+            <p className="font-bold text-gray-500 mb-4">Ajoutez votre premier enfant !</p>
+            <button onClick={() => setShowAddChild(true)}
+              className="bg-kids-teal text-white font-bold px-6 py-3 rounded-2xl">
+              + Ajouter un enfant
+            </button>
+          </div>
+        ) : (
+          <>
+            {navTab === 'accueil' && <AccueilTab />}
+            {navTab === 'habitudes' && <HabitudesTab />}
+            {navTab === 'recompenses' && <RecompensesTab />}
+            {navTab === 'profil' && <ProfilTab />}
+          </>
+        )}
+      </div>
+
+      {/* Bottom navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+        <div className="flex items-center justify-around max-w-md mx-auto px-2 py-1">
+          {[
+            { id: 'accueil',      icon: '🏠', label: 'Accueil' },
+            { id: 'habitudes',    icon: '📋', label: 'Habitudes' },
+          ].map(item => (
+            <button key={item.id} onClick={() => setNavTab(item.id as any)}
+              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>
+              <span className="text-xl">{item.icon}</span>
+              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{item.label}</span>
+            </button>
+          ))}
+
+          {/* Center + button */}
+          <motion.button whileTap={{ scale: 0.9 }}
+            onClick={() => setShowSuggestions(true)}
+            className="w-14 h-14 bg-kids-orange rounded-full flex items-center justify-center shadow-lg text-white text-3xl font-black -mt-5 border-4 border-white">
+            +
+          </motion.button>
+
+          {[
+            { id: 'recompenses', icon: '🎁', label: 'Récompenses' },
+            { id: 'profil',      icon: '👤', label: 'Profil' },
+          ].map(item => (
+            <button key={item.id} onClick={() => setNavTab(item.id as any)}
+              className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>
+              <span className="text-xl">{item.icon}</span>
+              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
