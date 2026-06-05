@@ -69,7 +69,10 @@ export default async function childrenRoutes(app: FastifyInstance) {
     })
     if (!child) return reply.code(404).send({ error: 'Enfant introuvable' })
     const body = childSchema.partial().parse(request.body)
-    return app.prisma.child.update({ where: { id: request.params.id }, data: body })
+    return app.prisma.child.update({
+      where: { id: request.params.id },
+      data: { ...body, birthDate: body.birthDate ? new Date(body.birthDate) : undefined },
+    })
   })
 
   app.delete('/:id', async (request: any, reply) => {
