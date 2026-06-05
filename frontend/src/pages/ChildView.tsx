@@ -36,7 +36,7 @@ export default function ChildView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-kids-yellow flex items-center justify-center">
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
         <motion.div className="text-6xl" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
           ⭐
         </motion.div>
@@ -50,11 +50,8 @@ export default function ChildView() {
         <div className="text-7xl mb-4">👨‍👩‍👧</div>
         <h2 className="text-3xl font-black text-white mb-3">Bienvenue !</h2>
         <p className="text-white/80 font-semibold mb-8 text-lg">Créez le profil de votre enfant pour commencer</p>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/parent')}
-          className="bg-white text-kids-orange font-black text-xl px-8 py-4 rounded-2xl shadow-lg"
-        >
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
+          className="bg-white text-kids-orange font-black text-xl px-8 py-4 rounded-2xl shadow-lg">
           👨‍👩‍👧 Espace Parent
         </motion.button>
       </div>
@@ -62,41 +59,33 @@ export default function ChildView() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
-      <div className="flex justify-between items-center p-4 max-w-md mx-auto">
-        {children.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto flex-1">
-            {children.map(child => (
-              <button
-                key={child.id}
-                onClick={() => setActiveChild(child.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap ${
-                  activeChildId === child.id
-                    ? 'bg-kids-orange text-white shadow-md'
-                    : 'bg-white text-gray-600 border-2 border-gray-200'
-                }`}
-              >
-                {child.photoUrl
-                  ? <img src={child.photoUrl} className="w-6 h-6 rounded-full object-cover" />
-                  : <span>{child.avatarEmoji}</span>
-                }
-                {child.name}
-              </button>
-            ))}
-          </div>
-        )}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/parent')}
-          className="ml-auto bg-white text-gray-600 font-bold px-4 py-2 rounded-full border-2 border-gray-200 shadow-sm text-sm"
-        >
-          ⚙️ Parent
-        </motion.button>
-      </div>
+    <div className="min-h-screen bg-amber-50">
+      {/* Sélecteur enfant (seulement si plusieurs enfants) */}
+      {children.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 max-w-md mx-auto">
+          {children.map(child => (
+            <button key={child.id} onClick={() => setActiveChild(child.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-xs transition-all whitespace-nowrap flex-shrink-0 ${
+                activeChildId === child.id
+                  ? 'bg-kids-orange text-white shadow-md'
+                  : 'bg-white text-gray-500 border border-gray-200'
+              }`}>
+              {child.photoUrl
+                ? <img src={child.photoUrl} className="w-5 h-5 rounded-full object-cover" />
+                : <span>{child.avatarEmoji}</span>
+              }
+              {child.name}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {activeChild && <Dashboard child={activeChild} onChildUpdate={(updated) =>
-        setChildren(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))
-      } />}
+      {activeChild && (
+        <Dashboard
+          child={activeChild}
+          onChildUpdate={updated => setChildren(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))}
+        />
+      )}
     </div>
   )
 }
