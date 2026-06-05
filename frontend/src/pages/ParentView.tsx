@@ -92,24 +92,45 @@ function getCategoryInfo(id: string) {
   return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
 }
 
-function DonutChart({ pct, completed, total }: { pct: number; completed: number; total: number }) {
+function DonutChart({ completed, inProgress, missed }: { completed: number; inProgress: number; missed: number }) {
   const r = 36
   const circ = 2 * Math.PI * r
-  const dash = Math.min(1, pct / 100) * circ
+  const total = completed + inProgress + missed
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+  const dashCompleted = total > 0 ? (completed / total) * circ : 0
+  const dashInProgress = total > 0 ? (inProgress / total) * circ : 0
+  const offsetCompleted = 0
+  const offsetInProgress = dashCompleted
+  const offsetMissed = dashCompleted + dashInProgress
+  const dashMissed = total > 0 ? (missed / total) * circ : 0
   return (
     <div className="flex flex-col items-center">
       <svg width="88" height="88" viewBox="0 0 88 88">
         <circle cx="44" cy="44" r={r} fill="none" stroke="#e5e7eb" strokeWidth="10" />
         {completed > 0 && (
           <circle cx="44" cy="44" r={r} fill="none" stroke="#22c55e" strokeWidth="10"
-            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+            strokeDasharray={`${dashCompleted} ${circ - dashCompleted}`}
+            strokeDashoffset={-offsetCompleted} strokeLinecap="butt"
+            transform="rotate(-90 44 44)" />
+        )}
+        {inProgress > 0 && (
+          <circle cx="44" cy="44" r={r} fill="none" stroke="#f97316" strokeWidth="10"
+            strokeDasharray={`${dashInProgress} ${circ - dashInProgress}`}
+            strokeDashoffset={-offsetInProgress} strokeLinecap="butt"
+            transform="rotate(-90 44 44)" />
+        )}
+        {missed > 0 && (
+          <circle cx="44" cy="44" r={r} fill="none" stroke="#ef4444" strokeWidth="10"
+            strokeDasharray={`${dashMissed} ${circ - dashMissed}`}
+            strokeDashoffset={-offsetMissed} strokeLinecap="butt"
             transform="rotate(-90 44 44)" />
         )}
         <text x="44" y="49" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#374151">{pct}%</text>
       </svg>
-      <div className="flex gap-3 text-xs mt-1">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{completed} faites</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block" />{total - completed} restantes</span>
+      <div className="flex flex-col gap-0.5 text-xs mt-1 w-full">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block flex-shrink-0" />{completed} complétées</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block flex-shrink-0" />{inProgress} en cours</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block flex-shrink-0" />{missed} manquées</span>
       </div>
     </div>
   )
@@ -123,6 +144,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
   weekDays?: { date: string; label: string }[]
 }) {
   const controls = useDragControls()
+  const [menuOpen, setMenuOpen] = useState(false)
   const cat = getCategoryInfo(habit.category || 'GENERAL')
   return (
     <Reorder.Item
@@ -130,7 +152,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
       dragControls={controls}
       dragListener={false}
       onDragEnd={onDragEnd}
-      className="bg-white rounded-2xl p-3 shadow-sm"
+      className="bg-white rounded-2xl p-3 shadow-sm relative"
     >
       <div className="flex items-center gap-3">
         <span
@@ -146,9 +168,21 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-yellow-500">⭐ {habit.pointValue}</span>
-          <button onClick={onDelete} className="text-red-300 hover:text-red-500 p-1 text-lg">🗑️</button>
+          <button onClick={() => setMenuOpen(v => !v)}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 font-bold text-lg">
+            ⋮
+          </button>
         </div>
       </div>
+      {menuOpen && (
+        <div className="absolute right-3 top-10 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          <button onClick={() => { onDelete(); setMenuOpen(false) }}
+            className="flex items-center gap-2 px-4 py-3 text-red-500 font-bold text-sm hover:bg-red-50 w-full">
+            🗑️ Supprimer
+          </button>
+        </div>
+      )}
+      {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {weekDays && completedDates && (
         <div className="flex gap-1 mt-2 ml-10">
           {weekDays.map(({ date, label }) => {
@@ -216,6 +250,9 @@ export default function ParentView() {
 
   // Misc
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [showHamburger, setShowHamburger] = useState(false)
+  const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
+  const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
 
   // Last 7 days (Mon label = Lu, etc.)
   const last7Days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
@@ -292,6 +329,29 @@ export default function ParentView() {
   }).length
 
   const weeklyPct = todayHabits.length > 0 ? Math.round((todayCompleted / todayHabits.length) * 100) : 0
+
+  // Habitudes manquées = scheduled for past days this week but not completed
+  const missedCount = useMemo(() => {
+    let missed = 0
+    last7Days.slice(0, 6).forEach(({ date }) => {
+      const dow = new Date(date + 'T12:00:00').getDay()
+      const scheduled = (activeChild?.habits ?? []).filter((h: any) =>
+        (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(dow)
+      ).length
+      const done = weeklyCompletions.filter((c: any) => c.date === date).length
+      missed += Math.max(0, scheduled - done)
+    })
+    return missed
+  }, [last7Days, activeChild, weeklyCompletions])
+
+  const getAge = (birthDate?: string) => {
+    if (!birthDate) return null
+    const age = Math.floor((Date.now() - new Date(birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+    return `${age} an${age > 1 ? 's' : ''}`
+  }
+
+  // Nombre de rappels en attente pour le badge cloche
+  const pendingToday = todayHabits.length - todayCompleted
 
   const usedCategories = useMemo(() => {
     const cats = new Set((activeChild?.habits ?? []).map((h: any) => h.category || 'GENERAL'))
@@ -461,8 +521,28 @@ export default function ParentView() {
   const AccueilTab = () => {
     if (!activeChild) return null
     const showLimit = 5
+    const age = getAge(activeChild.birthDate)
+    const displayedHabits = habitDayFilter === 'today' ? todayHabits : (activeChild?.habits ?? [])
     return (
       <div className="space-y-4">
+        {/* Child card */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4">
+          {activeChild.photoUrl
+            ? <img src={activeChild.photoUrl} className="w-16 h-16 rounded-full object-cover border-3 border-kids-orange shadow-md" />
+            : <div className="w-16 h-16 rounded-full bg-gradient-to-br from-kids-orange to-yellow-400 flex items-center justify-center text-3xl shadow-md">
+                {activeChild.avatarEmoji}
+              </div>
+          }
+          <div className="flex-1">
+            <h2 className="font-black text-gray-800 text-lg">{activeChild.name}</h2>
+            {age && <p className="text-sm text-gray-400 font-semibold">{age}{activeChild.classe ? ` · ${activeChild.classe}` : ''}</p>}
+          </div>
+          <button onClick={() => navigate('/child')}
+            className="bg-kids-orange/10 text-kids-orange font-bold text-xs px-3 py-2 rounded-xl">
+            Vue enfant →
+          </button>
+        </div>
+
         {/* Stats card */}
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -486,12 +566,36 @@ export default function ParentView() {
           <div className="flex justify-between items-center px-4 py-3 border-b border-gray-50">
             <div>
               <h3 className="font-black text-gray-800">Mes habitudes</h3>
-              <p className="text-xs text-gray-400">{todayHabits.length} habitudes</p>
+              <p className="text-xs text-gray-400">{displayedHabits.length} habitudes</p>
             </div>
-            <button onClick={() => setNavTab('habitudes')}
-              className="text-xs text-kids-orange font-bold">
-              Tout voir →
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Aujourd'hui filter */}
+              <div className="relative">
+                <button onClick={() => setShowDayFilterMenu(v => !v)}
+                  className="flex items-center gap-1 text-xs font-bold text-kids-orange bg-orange-50 px-3 py-1.5 rounded-xl">
+                  {habitDayFilter === 'today' ? "Aujourd'hui" : 'Tout'} ▾
+                </button>
+                {showDayFilterMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowDayFilterMenu(false)} />
+                    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden w-32">
+                      <button onClick={() => { setHabitDayFilter('today'); setShowDayFilterMenu(false) }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold ${habitDayFilter === 'today' ? 'text-kids-orange' : 'text-gray-600'}`}>
+                        Aujourd'hui
+                      </button>
+                      <button onClick={() => { setHabitDayFilter('all'); setShowDayFilterMenu(false) }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold border-t border-gray-100 ${habitDayFilter === 'all' ? 'text-kids-orange' : 'text-gray-600'}`}>
+                        Toutes
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+              <button onClick={() => setNavTab('habitudes')}
+                className="text-xs text-gray-400 font-bold">
+                Tout voir →
+              </button>
+            </div>
           </div>
           {/* Category pills */}
           {usedCategories.length > 1 && (
@@ -513,7 +617,7 @@ export default function ParentView() {
           )}
           {/* Habit list with 7-day circles */}
           <div className="divide-y divide-gray-50">
-            {todayHabits
+            {displayedHabits
               .filter((h: any) => categoryFilter === 'ALL' || (h.category || 'GENERAL') === categoryFilter)
               .slice(0, showLimit)
               .map((habit: any) => {
@@ -552,13 +656,13 @@ export default function ParentView() {
                 )
               })}
           </div>
-          {todayHabits.length > showLimit && (
+          {displayedHabits.length > showLimit && (
             <button onClick={() => setNavTab('habitudes')}
               className="w-full py-3 text-sm text-kids-orange font-bold border-t border-gray-50">
-              Voir toutes les habitudes ({todayHabits.length}) →
+              Voir toutes les habitudes ({displayedHabits.length}) →
             </button>
           )}
-          {todayHabits.length === 0 && (
+          {displayedHabits.length === 0 && (
             <div className="text-center py-8">
               <p className="text-4xl mb-2">🌱</p>
               <p className="text-sm text-gray-400 font-semibold">Aucune habitude pour aujourd'hui</p>
@@ -584,8 +688,12 @@ export default function ParentView() {
             <p className="text-xs text-gray-400 mt-2">🐉 {activeChild.streakDays > 0 ? 'Bravo ! Continue !' : 'Lance ta série !'}</p>
           </div>
           <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
-            <p className="font-black text-gray-800 text-sm mb-2">Aujourd'hui</p>
-            <DonutChart pct={weeklyPct} completed={todayCompleted} total={todayHabits.length} />
+            <p className="font-black text-gray-800 text-sm mb-2">Cette semaine</p>
+            <DonutChart
+              completed={todayCompleted}
+              inProgress={Math.max(0, todayHabits.length - todayCompleted)}
+              missed={missedCount}
+            />
           </div>
         </div>
       </div>
@@ -826,22 +934,86 @@ export default function ParentView() {
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
       <SuggestionsPanel />
 
+      {/* Hamburger panel */}
+      <AnimatePresence>
+        {showHamburger && (
+          <>
+            <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowHamburger(false)} />
+            <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+              className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 shadow-2xl flex flex-col">
+              <div className="p-6 bg-kids-orange">
+                <p className="text-white/80 text-sm font-semibold">{greeting()} 👋</p>
+                <p className="text-white font-black text-xl">{user?.name}</p>
+                {isPremium && <span className="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full mt-1 inline-block">✨ Premium</span>}
+              </div>
+              <div className="flex-1 p-4 space-y-1">
+                <button onClick={() => { setShowAddChild(true); setShowHamburger(false) }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
+                  <span className="text-xl">👶</span>
+                  <span className="font-bold text-gray-700">Ajouter un enfant</span>
+                </button>
+                <button onClick={() => { setNavTab('profil'); setShowHamburger(false) }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
+                  <span className="text-xl">👤</span>
+                  <span className="font-bold text-gray-700">Mon profil</span>
+                </button>
+                {!isPremium && (
+                  <button onClick={() => { setShowUpgrade(true); setShowHamburger(false) }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 text-left">
+                    <span className="text-xl">⭐</span>
+                    <span className="font-bold text-yellow-600">Passer Premium</span>
+                  </button>
+                )}
+              </div>
+              <div className="p-4 border-t border-gray-100">
+                <button onClick={logout}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-left">
+                  <span className="text-xl">🚪</span>
+                  <span className="font-bold text-red-500">Se déconnecter</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="bg-white shadow-sm px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-md mx-auto">
-          <div>
-            <p className="text-xs text-gray-400 font-semibold">{greeting()} 👋</p>
-            <button
-              onClick={() => setShowChildDropdown(v => !v)}
-              className="flex items-center gap-1 font-black text-gray-800 text-base">
-              {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
-              {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowHamburger(true)}
+              className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-gray-50">
+              <span className="w-5 h-0.5 bg-gray-600 rounded" />
+              <span className="w-5 h-0.5 bg-gray-600 rounded" />
+              <span className="w-5 h-0.5 bg-gray-600 rounded" />
             </button>
+            <div>
+              <p className="text-xs text-gray-400 font-semibold">{greeting()} 👋</p>
+              <button
+                onClick={() => setShowChildDropdown(v => !v)}
+                className="flex items-center gap-1 font-black text-gray-800 text-base">
+                {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
+                {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Notification bell */}
+            <div className="relative">
+              <button onClick={() => { setNavTab('profil') }}
+                className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-lg">
+                🔔
+              </button>
+              {pendingToday > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center">
+                  {pendingToday}
+                </span>
+              )}
+            </div>
+            {/* Child avatar */}
             {activeChild?.photoUrl
-              ? <img src={activeChild.photoUrl} className="w-10 h-10 rounded-full object-cover border-2 border-kids-orange" />
-              : <div className="w-10 h-10 rounded-full bg-kids-orange flex items-center justify-center text-white font-black text-lg">
+              ? <img src={activeChild.photoUrl} className="w-9 h-9 rounded-full object-cover border-2 border-kids-orange" />
+              : <div className="w-9 h-9 rounded-full bg-kids-orange flex items-center justify-center text-white font-black">
                   {activeChild?.avatarEmoji ?? user?.name?.[0]?.toUpperCase()}
                 </div>
             }
