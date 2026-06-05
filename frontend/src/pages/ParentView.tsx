@@ -251,6 +251,7 @@ export default function ParentView() {
   // Misc
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [showHamburger, setShowHamburger] = useState(false)
+  const [showNotifPanel, setShowNotifPanel] = useState(false)
   const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
   const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
 
@@ -544,19 +545,17 @@ export default function ParentView() {
         </div>
 
         {/* Stats card */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { icon: '⭐', value: weeklyPoints, label: 'Points cette semaine', color: 'bg-yellow-50 border-yellow-200', textColor: 'text-yellow-600' },
-            { icon: '✅', value: `${weeklyCompletions.length}`, label: 'Complétées cette semaine', color: 'bg-green-50 border-green-200', textColor: 'text-green-600' },
-            { icon: '🔥', value: activeChild.streakDays, label: 'Jours de série', color: 'bg-orange-50 border-orange-200', textColor: 'text-orange-600' },
-            { icon: '🏆', value: badgesCount, label: 'Badges obtenus', color: 'bg-purple-50 border-purple-200', textColor: 'text-purple-600' },
+            { icon: '⭐', value: weeklyPoints, label: 'Points', color: 'bg-yellow-50 border-yellow-200', textColor: 'text-yellow-600' },
+            { icon: '✅', value: `${weeklyCompletions.length}`, label: 'Complétées', color: 'bg-green-50 border-green-200', textColor: 'text-green-600' },
+            { icon: '🔥', value: activeChild.streakDays, label: 'Série', color: 'bg-orange-50 border-orange-200', textColor: 'text-orange-600' },
+            { icon: '🏆', value: badgesCount, label: 'Badges', color: 'bg-purple-50 border-purple-200', textColor: 'text-purple-600' },
           ].map(s => (
-            <div key={s.label} className={`rounded-2xl p-4 border-2 ${s.color}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xl">{s.icon}</span>
-              </div>
-              <p className={`text-2xl font-black ${s.textColor}`}>{s.value}</p>
-              <p className="text-xs text-gray-500 font-semibold mt-0.5">{s.label}</p>
+            <div key={s.label} className={`rounded-2xl p-2.5 border-2 ${s.color} flex flex-col items-center text-center`}>
+              <span className="text-lg mb-0.5">{s.icon}</span>
+              <p className={`text-lg font-black leading-none ${s.textColor}`}>{s.value}</p>
+              <p className="text-xs text-gray-500 font-semibold mt-1 leading-tight">{s.label}</p>
             </div>
           ))}
         </div>
@@ -946,24 +945,63 @@ export default function ParentView() {
                 <p className="text-white font-black text-xl">{user?.name}</p>
                 {isPremium && <span className="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full mt-1 inline-block">✨ Premium</span>}
               </div>
-              <div className="flex-1 p-4 space-y-1">
-                <button onClick={() => { setShowAddChild(true); setShowHamburger(false) }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
-                  <span className="text-xl">👶</span>
-                  <span className="font-bold text-gray-700">Ajouter un enfant</span>
-                </button>
-                <button onClick={() => { setNavTab('profil'); setShowHamburger(false) }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
-                  <span className="text-xl">👤</span>
-                  <span className="font-bold text-gray-700">Mon profil</span>
-                </button>
-                {!isPremium && (
-                  <button onClick={() => { setShowUpgrade(true); setShowHamburger(false) }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 text-left">
-                    <span className="text-xl">⭐</span>
-                    <span className="font-bold text-yellow-600">Passer Premium</span>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Enfants */}
+                <div>
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 px-1">Mes enfants</p>
+                  <div className="space-y-1">
+                    {children.map(c => (
+                      <div key={c.id}
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all ${activeId === c.id ? 'border-kids-orange bg-orange-50' : 'border-transparent hover:bg-gray-50'}`}>
+                        {/* Photo cliquable */}
+                        <button
+                          onClick={() => {
+                            setActiveId(c.id)
+                            setEditingAvatar(true)
+                            setShowHamburger(false)
+                          }}
+                          className="relative flex-shrink-0">
+                          {c.photoUrl
+                            ? <img src={c.photoUrl} className="w-11 h-11 rounded-full object-cover border-2 border-kids-orange" />
+                            : <div className="w-11 h-11 rounded-full bg-kids-orange/20 flex items-center justify-center text-2xl">{c.avatarEmoji}</div>
+                          }
+                          <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-kids-blue rounded-full flex items-center justify-center text-xs text-white">✏️</span>
+                        </button>
+                        {/* Infos */}
+                        <button
+                          onClick={() => { setActiveId(c.id); setShowHamburger(false) }}
+                          className="flex-1 text-left min-w-0">
+                          <p className="font-bold text-gray-800 text-sm truncate">{c.name}</p>
+                          <p className="text-xs text-gray-400">Niv. {c.level} · {c.xp} XP{c.classe ? ` · ${c.classe}` : ''}</p>
+                        </button>
+                        {/* Supprimer */}
+                        <button onClick={() => { setConfirmDeleteId(c.id); setShowHamburger(false) }}
+                          className="w-6 h-6 bg-red-100 text-red-400 rounded-full text-xs flex items-center justify-center flex-shrink-0">✕</button>
+                      </div>
+                    ))}
+                    <button onClick={() => { setShowAddChild(true); setShowHamburger(false) }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 text-left border-2 border-dashed border-gray-200">
+                      <span className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center text-xl">+</span>
+                      <span className="font-bold text-gray-400 text-sm">Ajouter un enfant</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="border-t border-gray-100 pt-3 space-y-1">
+                  <button onClick={() => { setNavTab('profil'); setShowHamburger(false) }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
+                    <span className="text-xl">👤</span>
+                    <span className="font-bold text-gray-700">Mon profil</span>
                   </button>
-                )}
+                  {!isPremium && (
+                    <button onClick={() => { setShowUpgrade(true); setShowHamburger(false) }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 text-left">
+                      <span className="text-xl">⭐</span>
+                      <span className="font-bold text-yellow-600">Passer Premium</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="p-4 border-t border-gray-100">
                 <button onClick={logout}
@@ -971,6 +1009,26 @@ export default function ParentView() {
                   <span className="text-xl">🚪</span>
                   <span className="font-bold text-red-500">Se déconnecter</span>
                 </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Notif panel */}
+      <AnimatePresence>
+        {showNotifPanel && activeChild && (
+          <>
+            <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowNotifPanel(false)} />
+            <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+              className="fixed top-16 left-4 right-4 max-w-md mx-auto bg-white rounded-2xl shadow-2xl z-50 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <span className="font-black text-gray-800">🔔 Rappels</span>
+                <button onClick={() => setShowNotifPanel(false)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+              </div>
+              <div className="p-4">
+                <NotificationSettings childId={activeChild.id} />
               </div>
             </motion.div>
           </>
@@ -999,24 +1057,20 @@ export default function ParentView() {
           </div>
           <div className="flex items-center gap-2">
             {/* Notification bell */}
-            <div className="relative">
-              <button onClick={() => { setNavTab('profil') }}
-                className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-lg">
-                🔔
-              </button>
-              {pendingToday > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center">
-                  {pendingToday}
-                </span>
-              )}
-            </div>
-            {/* Child avatar */}
-            {activeChild?.photoUrl
-              ? <img src={activeChild.photoUrl} className="w-9 h-9 rounded-full object-cover border-2 border-kids-orange" />
-              : <div className="w-9 h-9 rounded-full bg-kids-orange flex items-center justify-center text-white font-black">
-                  {activeChild?.avatarEmoji ?? user?.name?.[0]?.toUpperCase()}
-                </div>
-            }
+            <button onClick={() => setShowNotifPanel(true)}
+              className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-lg">
+              🔔
+            </button>
+            {/* Child avatar — cliquable pour changer la photo */}
+            <button onClick={() => setEditingAvatar(v => !v)} className="relative">
+              {activeChild?.photoUrl
+                ? <img src={activeChild.photoUrl} className="w-9 h-9 rounded-full object-cover border-2 border-kids-orange" />
+                : <div className="w-9 h-9 rounded-full bg-kids-orange flex items-center justify-center text-white font-black">
+                    {activeChild?.avatarEmoji ?? user?.name?.[0]?.toUpperCase()}
+                  </div>
+              }
+              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs shadow">📷</span>
+            </button>
           </div>
         </div>
 
@@ -1104,7 +1158,7 @@ export default function ParentView() {
         )}
 
         {/* Child profile compact (visible on all tabs) */}
-        {activeChild && (navTab === 'habitudes' || navTab === 'recompenses') && (
+        {activeChild && navTab === 'habitudes' && (
           <div className="bg-white rounded-2xl p-3 shadow-sm mb-4 flex items-center gap-3">
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditingAvatar(v => !v)}>
               {activeChild.photoUrl
