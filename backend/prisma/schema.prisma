@@ -24,11 +24,17 @@ enum Plan {
   PREMIUM
 }
 
+enum Sex {
+  GARCON
+  FILLE
+}
+
 model Child {
   id           String            @id @default(uuid())
   userId       String
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
+  sex          Sex?
   birthDate    DateTime?
   classe       String?
   photoUrl     String?           @db.Text

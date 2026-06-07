@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth'
 
 const childSchema = z.object({
   name: z.string().min(1),
+  sex: z.enum(['GARCON', 'FILLE']).optional(),
   birthDate: z.string().optional(),
   classe: z.string().optional(),
   photoUrl: z.string().optional(),

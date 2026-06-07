@@ -13,6 +13,7 @@ import UpgradeModal from '../components/parent/UpgradeModal'
 interface Child {
   id: string
   name: string
+  sex?: 'GARCON' | 'FILLE'
   avatarEmoji: string
   avatarColor: string
   photoUrl?: string
@@ -224,7 +225,7 @@ export default function ParentView() {
   // Child management
   const [showChildDropdown, setShowChildDropdown] = useState(false)
   const [showAddChild, setShowAddChild] = useState(false)
-  const [newChildForm, setNewChildForm] = useState({ name: '', classe: '', birthDate: '', photoUrl: '' })
+  const [newChildForm, setNewChildForm] = useState({ name: '', sex: '' as '' | 'GARCON' | 'FILLE', classe: '', birthDate: '', photoUrl: '' })
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [editingAvatar, setEditingAvatar] = useState(false)
 
@@ -253,7 +254,7 @@ export default function ParentView() {
   const [showHamburger, setShowHamburger] = useState(false)
   const [showNotifPanel, setShowNotifPanel] = useState(false)
   const [editingChildProfile, setEditingChildProfile] = useState<Child | null>(null)
-  const [editChildForm, setEditChildForm] = useState({ name: '', classe: '', birthDate: '', photoUrl: '' })
+  const [editChildForm, setEditChildForm] = useState({ name: '', sex: '' as '' | 'GARCON' | 'FILLE', classe: '', birthDate: '', photoUrl: '' })
   const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
   const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
 
@@ -381,6 +382,7 @@ export default function ParentView() {
     e.preventDefault()
     const res = await api.post('/children', {
       name: newChildForm.name,
+      sex: newChildForm.sex || undefined,
       avatarEmoji: '🧒',
       avatarColor: '#FF6B6B',
       classe: newChildForm.classe || undefined,
@@ -388,7 +390,7 @@ export default function ParentView() {
       photoUrl: newChildForm.photoUrl || undefined,
     })
     if (newChildForm.photoUrl && res.data?.id) setChildPhoto(res.data.id, newChildForm.photoUrl)
-    setNewChildForm({ name: '', classe: '', birthDate: '', photoUrl: '' })
+    setNewChildForm({ name: '', sex: '', classe: '', birthDate: '', photoUrl: '' })
     setShowAddChild(false)
     fetchChildren()
   }
@@ -449,6 +451,7 @@ export default function ParentView() {
   const openEditChildProfile = (child: Child) => {
     setEditChildForm({
       name: child.name,
+      sex: child.sex ?? '',
       classe: child.classe ?? '',
       birthDate: child.birthDate ? child.birthDate.split('T')[0] : '',
       photoUrl: child.photoUrl ?? '',
@@ -462,6 +465,7 @@ export default function ParentView() {
     try {
       await api.patch(`/children/${editingChildProfile.id}`, {
         name: editChildForm.name || undefined,
+        sex: editChildForm.sex || undefined,
         classe: editChildForm.classe || undefined,
         birthDate: editChildForm.birthDate || undefined,
       })
@@ -1084,6 +1088,22 @@ export default function ParentView() {
                     onChange={e => setEditChildForm(f => ({ ...f, name: e.target.value }))}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
                 </div>
+                {/* Sexe */}
+                <div>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Sexe</label>
+                  <div className="flex gap-2">
+                    <button type="button"
+                      onClick={() => setEditChildForm(f => ({ ...f, sex: f.sex === 'GARCON' ? '' : 'GARCON' }))}
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${editChildForm.sex === 'GARCON' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      👦 Garçon
+                    </button>
+                    <button type="button"
+                      onClick={() => setEditChildForm(f => ({ ...f, sex: f.sex === 'FILLE' ? '' : 'FILLE' }))}
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${editChildForm.sex === 'FILLE' ? 'bg-pink-100 border-pink-400 text-pink-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                      👧 Fille
+                    </button>
+                  </div>
+                </div>
                 {/* Date de naissance */}
                 <div>
                   <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Date de naissance</label>
@@ -1242,6 +1262,18 @@ export default function ParentView() {
             <input autoFocus type="text" placeholder="Prénom *" value={newChildForm.name}
               onChange={e => setNewChildForm(f => ({ ...f, name: e.target.value }))}
               className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" required />
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => setNewChildForm(f => ({ ...f, sex: f.sex === 'GARCON' ? '' : 'GARCON' }))}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${newChildForm.sex === 'GARCON' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                👦 Garçon
+              </button>
+              <button type="button"
+                onClick={() => setNewChildForm(f => ({ ...f, sex: f.sex === 'FILLE' ? '' : 'FILLE' }))}
+                className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${newChildForm.sex === 'FILLE' ? 'bg-pink-100 border-pink-400 text-pink-700' : 'bg-white border-gray-200 text-gray-500'}`}>
+                👧 Fille
+              </button>
+            </div>
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">Date de naissance</label>

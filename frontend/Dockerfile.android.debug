@@ -1,0 +1,57 @@
+FROM eclipse-temurin:21-jdk-jammy
+
+# Install system deps + Node.js 22
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends wget unzip curl && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Android SDK setup
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
+    wget -q "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
+        -O /tmp/cmdtools.zip && \
+    unzip -q /tmp/cmdtools.zip -d /tmp && \
+    mv /tmp/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest && \
+    rm /tmp/cmdtools.zip
+
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true
+RUN sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+# === STEP 1: Install npm deps (cached layer) ===
+WORKDIR /project
+COPY package*.json ./
+RUN npm install --no-fund --no-audit --loglevel error
+
+# === STEP 2: Build Vite frontend with Android API URL ===
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tsconfig.node.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY capacitor.config.ts ./
+COPY .env.android ./.env.android
+COPY src/ ./src/
+COPY public/ ./public/
+RUN npm run build:android
+
+# === STEP 3: Sync via Capacitor ===
+COPY android/ ./android/
+RUN chmod +x ./android/gradlew && sed -i 's/\r//' ./android/gradlew
+RUN CAPACITOR_ANDROID_STUDIO_PATH=/dev/null npx cap sync android 2>&1 | grep -v "Opening Android Studio"
+
+# Cache Gradle download
+RUN cd android && ./gradlew --version --no-daemon 2>&1 | tail -3 || true
+
+# === STEP 4: Build debug APK (no keystore needed) ===
+WORKDIR /project/android
+RUN ./gradlew assembleDebug --no-daemon --no-build-cache
+
+# === STEP 5: Export stage — tiny image with only the APK ===
+FROM scratch AS export
+COPY --from=0 /project/android/app/build/outputs/apk/debug/app-debug.apk /habitkids-debug.apk
