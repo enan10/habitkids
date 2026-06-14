@@ -258,6 +258,13 @@ export default function ParentView() {
   const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
   const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
 
+  // Change password
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState(false)
+  const [pwLoading, setPwLoading] = useState(false)
+
   // Last 7 days (Mon label = Lu, etc.)
   const last7Days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() - (6 - i) * 86400000)
@@ -479,6 +486,24 @@ export default function ParentView() {
   const unlockReward = async (rewardId: string) => {
     await api.post(`/rewards/${rewardId}/unlock`)
     if (activeId) fetchRewards(activeId)
+  }
+
+  const submitChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwError('')
+    if (pwForm.next !== pwForm.confirm) { setPwError('Les mots de passe ne correspondent pas'); return }
+    if (pwForm.next.length < 8) { setPwError('Minimum 8 caractères'); return }
+    setPwLoading(true)
+    try {
+      await api.patch('/auth/password', { currentPassword: pwForm.current, newPassword: pwForm.next })
+      setPwSuccess(true)
+      setPwForm({ current: '', next: '', confirm: '' })
+      setTimeout(() => { setShowChangePassword(false); setPwSuccess(false) }, 1800)
+    } catch (err: any) {
+      setPwError(err.response?.data?.error || 'Erreur')
+    } finally {
+      setPwLoading(false)
+    }
   }
 
   const greeting = () => {
@@ -951,6 +976,12 @@ export default function ParentView() {
         </div>
       )}
 
+      {/* Changer le mot de passe */}
+      <button onClick={() => { setShowChangePassword(true); setPwError(''); setPwSuccess(false) }}
+        className="w-full bg-gray-50 text-gray-700 font-bold py-3 rounded-2xl border-2 border-gray-100">
+        🔑 Changer le mot de passe
+      </button>
+
       {/* Logout */}
       <button onClick={logout}
         className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-2xl border-2 border-red-100">
@@ -1136,6 +1167,51 @@ export default function ParentView() {
                   ✓ Sauvegarder
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal changer le mot de passe */}
+      <AnimatePresence>
+        {showChangePassword && (
+          <>
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowChangePassword(false)} />
+            <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+              className="fixed inset-x-4 top-auto bottom-0 max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl z-50 p-6 pb-10">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-black text-gray-800 text-lg">🔑 Changer le mot de passe</h2>
+                <button onClick={() => setShowChangePassword(false)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+              </div>
+              {pwSuccess ? (
+                <div className="text-center py-6">
+                  <div className="text-5xl mb-3">✅</div>
+                  <p className="font-black text-green-600 text-lg">Mot de passe mis à jour !</p>
+                </div>
+              ) : (
+                <form onSubmit={submitChangePassword} className="space-y-3">
+                  <input type="password" placeholder="Mot de passe actuel" value={pwForm.current}
+                    onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+                    className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
+                    required />
+                  <input type="password" placeholder="Nouveau mot de passe (min. 8 car.)" value={pwForm.next}
+                    onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
+                    className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
+                    required minLength={8} />
+                  <input type="password" placeholder="Confirmer le nouveau mot de passe" value={pwForm.confirm}
+                    onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                    className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
+                    required minLength={8} />
+                  {pwError && (
+                    <p className="text-red-500 font-semibold text-sm text-center">{pwError}</p>
+                  )}
+                  <button type="submit" disabled={pwLoading}
+                    className="w-full bg-kids-orange text-white font-black py-3.5 rounded-xl disabled:opacity-60 mt-2">
+                    {pwLoading ? '⏳ Enregistrement...' : '✅ Enregistrer'}
+                  </button>
+                </form>
+              )}
             </motion.div>
           </>
         )}

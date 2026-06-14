@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  plan      Plan     @default(FREE)
-  createdAt DateTime @default(now())
-  children           Child[]
-  pushSubscriptions  PushSubscription[]
-  fcmDevices         FcmDevice[]
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String
+  name                String
+  plan                Plan      @default(FREE)
+  createdAt           DateTime  @default(now())
+  resetToken          String?
+  resetTokenExpiresAt DateTime?
+  children            Child[]
+  pushSubscriptions   PushSubscription[]
+  fcmDevices          FcmDevice[]
 }
 
 enum Plan {
