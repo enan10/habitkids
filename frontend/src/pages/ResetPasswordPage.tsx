@@ -2,12 +2,10 @@ import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../api/client'
-import { useAuthStore } from '../store/useStore'
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { login } = useAuthStore()
   const token = searchParams.get('token')
 
   const [password, setPassword] = useState('')
@@ -36,9 +34,13 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-kids-yellow to-kids-orange flex flex-col items-center justify-center p-6">
         <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="text-6xl mb-4">✅</div>
           <p className="font-black text-gray-800 text-xl mb-2">Mot de passe mis à jour !</p>
-          <p className="text-gray-500 mb-6">Vous êtes maintenant connecté.</p>
+          <p className="text-gray-500 mb-6">
+            Retournez sur l'application <strong>HabitKids</strong> et connectez-vous avec votre nouveau mot de passe.
+          </p>
+          <div className="text-5xl mb-4">📱</div>
+          <p className="text-gray-400 text-sm">Vous pouvez fermer cette page.</p>
         </div>
       </div>
     )
@@ -53,10 +55,8 @@ export default function ResetPasswordPage() {
     }
     setLoading(true)
     try {
-      const { data } = await api.post('/auth/reset-password', { token, newPassword: password })
-      login(data.token, data.user)
+      await api.post('/auth/reset-password', { token, newPassword: password })
       setSuccess(true)
-      setTimeout(() => navigate('/child'), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Lien invalide ou expiré')
     } finally {
