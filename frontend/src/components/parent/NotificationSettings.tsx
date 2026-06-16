@@ -26,6 +26,7 @@ export default function NotificationSettings({ childId }: { childId: string }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ hour: 8, minute: 0, label: 'Rappel habitudes' })
   const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const fetchSchedules = async () => {
     try {
@@ -37,24 +38,45 @@ export default function NotificationSettings({ childId }: { childId: string }) {
   useEffect(() => { fetchSchedules() }, [childId])
 
   const addPreset = async (p: typeof PRESETS[0]) => {
+    setFormError('')
     setSaving(true)
-    await api.post('/push/schedules', { hour: p.hour, minute: p.minute, label: p.label, childId })
-    await fetchSchedules()
-    setSaving(false)
+    try {
+      await api.post('/push/schedules', { hour: p.hour, minute: p.minute, label: p.label, childId })
+      await fetchSchedules()
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Erreur lors de l\'ajout'
+      setFormError(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const addSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
     setSaving(true)
-    await api.post('/push/schedules', { ...form, childId })
-    setShowForm(false)
-    await fetchSchedules()
-    setSaving(false)
+    try {
+      await api.post('/push/schedules', {
+        hour: Number(form.hour),
+        minute: Number(form.minute),
+        label: form.label || 'Rappel habitudes',
+        childId,
+      })
+      setShowForm(false)
+      await fetchSchedules()
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Erreur lors de l\'enregistrement'
+      setFormError(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const toggleSchedule = async (s: Schedule) => {
-    await api.patch(`/push/schedules/${s.id}`, { isEnabled: !s.isEnabled })
-    fetchSchedules()
+    try {
+      await api.patch(`/push/schedules/${s.id}`, { isEnabled: !s.isEnabled })
+      fetchSchedules()
+    } catch {}
   }
 
   const deleteSchedule = async (id: string) => {
@@ -151,6 +173,13 @@ export default function NotificationSettings({ childId }: { childId: string }) {
             ))}
           </div>
 
+          {formError && !showForm && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-red-500 font-semibold text-sm text-center bg-red-50 rounded-xl p-3">
+              ⚠️ {formError}
+            </motion.p>
+          )}
+
           {/* Custom form */}
           {showForm && (
             <motion.form
@@ -187,12 +216,18 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                   />
                 </div>
               </div>
+              {formError && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="text-red-500 font-semibold text-sm text-center bg-red-50 rounded-xl p-3">
+                  ⚠️ {formError}
+                </motion.p>
+              )}
               <button
                 type="submit"
                 disabled={saving}
                 className="w-full bg-kids-teal text-white font-black py-3 rounded-xl disabled:opacity-50"
               >
-                {saving ? '⏳' : '✅ Ajouter ce rappel'}
+                {saving ? '⏳ Enregistrement...' : '✅ Ajouter ce rappel'}
               </button>
             </motion.form>
           )}
