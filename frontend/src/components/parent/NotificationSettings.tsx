@@ -19,6 +19,20 @@ const PRESETS = [
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
+// Convert local H:M → UTC H:M before sending to server
+function localToUtc(localH: number, localM: number) {
+  const offset = new Date().getTimezoneOffset() // negative for UTC+ zones
+  const utcMins = ((localH * 60 + localM + offset) % 1440 + 1440) % 1440
+  return { hour: Math.floor(utcMins / 60), minute: utcMins % 60 }
+}
+
+// Convert UTC H:M from server → local H:M for display
+function utcToLocal(utcH: number, utcM: number) {
+  const offset = new Date().getTimezoneOffset()
+  const localMins = ((utcH * 60 + utcM - offset) % 1440 + 1440) % 1440
+  return { hour: Math.floor(localMins / 60), minute: localMins % 60 }
+}
+
 export default function NotificationSettings({ childId }: { childId: string }) {
   const { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest } =
     usePushNotifications()
@@ -41,7 +55,8 @@ export default function NotificationSettings({ childId }: { childId: string }) {
     setFormError('')
     setSaving(true)
     try {
-      await api.post('/push/schedules', { hour: p.hour, minute: p.minute, label: p.label, childId })
+      const utc = localToUtc(p.hour, p.minute)
+      await api.post('/push/schedules', { hour: utc.hour, minute: utc.minute, label: p.label, childId })
       await fetchSchedules()
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Erreur lors de l\'ajout'
@@ -56,9 +71,10 @@ export default function NotificationSettings({ childId }: { childId: string }) {
     setFormError('')
     setSaving(true)
     try {
+      const utc = localToUtc(Number(form.hour), Number(form.minute))
       await api.post('/push/schedules', {
-        hour: Number(form.hour),
-        minute: Number(form.minute),
+        hour: utc.hour,
+        minute: utc.minute,
         label: form.label || 'Rappel habitudes',
         childId,
       })
@@ -244,7 +260,7 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 }`}
               >
                 <div className="text-3xl font-black text-gray-800 tabular-nums w-16">
-                  {pad(s.hour)}:{pad(s.minute)}
+                  {(() => { const l = utcToLocal(s.hour, s.minute); return `${pad(l.hour)}:${pad(l.minute)}` })()}
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-gray-700 text-sm">{s.label}</p>

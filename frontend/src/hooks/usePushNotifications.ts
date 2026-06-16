@@ -40,12 +40,12 @@ export function usePushNotifications() {
     const { PushNotifications } = await import('@capacitor/push-notifications')
     const result = await PushNotifications.checkPermissions()
 
-    if (result.receive === 'granted') {
+    const alreadyGranted = result.receive === 'granted'
+    const notOptedOut = localStorage.getItem(FCM_KEY) !== 'false'
+
+    if (alreadyGranted) {
       setPermission('granted')
-      // Respect explicit opt-out, otherwise assume subscribed
-      if (localStorage.getItem(FCM_KEY) !== 'false') {
-        setIsSubscribed(true)
-      }
+      if (notOptedOut) setIsSubscribed(true)
     }
 
     // Set up listeners here so they survive an Android Activity recreation
@@ -63,11 +63,15 @@ export function usePushNotifications() {
         api.post('/push/fcm-register', { token }).catch(() => {})
       })
 
-      await PushNotifications.addListener('registrationError', () => {
-        // token not obtained, but OS permission might still be granted
-      })
+      await PushNotifications.addListener('registrationError', () => {})
+
 
       await PushNotifications.addListener('pushNotificationReceived', () => {})
+    }
+
+    // Auto-register FCM token on startup if permission already granted
+    if (alreadyGranted && notOptedOut) {
+      await PushNotifications.register()
     }
   }
 
