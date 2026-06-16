@@ -141,8 +141,8 @@ export async function sendPushToUser(
 export function startNotificationScheduler(prisma: PrismaClient) {
   setInterval(async () => {
     const now = new Date()
-    const hour = now.getHours()
-    const minute = now.getMinutes()
+    const hour = now.getUTCHours()
+    const minute = now.getUTCMinutes()
 
     try {
       const schedules = await prisma.notificationSchedule.findMany({
