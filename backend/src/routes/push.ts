@@ -11,8 +11,8 @@ const subscribeSchema = z.object({
 
 const scheduleSchema = z.object({
   childId: z.string(),
-  hour: z.number().int().min(0).max(23),
-  minute: z.number().int().min(0).max(59),
+  hour: z.coerce.number().int().min(0).max(23),
+  minute: z.coerce.number().int().min(0).max(59),
   label: z.string().default('Rappel habitudes'),
   isEnabled: z.boolean().default(true),
 })
