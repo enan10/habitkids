@@ -247,6 +247,8 @@ export default function ParentView() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
   const [addingPreset, setAddingPreset] = useState<string | null>(null)
+  const [selectedPreset, setSelectedPreset] = useState<typeof PRESET_HABITS[0] | null>(null)
+  const [selectedPresetDays, setSelectedPresetDays] = useState<number[]>([])
   const [addForDay, setAddForDay] = useState<number | null>(null)
   const [showHabitForm] = useState(false)
 
@@ -435,11 +437,11 @@ export default function ParentView() {
     fetchChildren()
   }
 
-  const addPresetHabit = async (preset: typeof PRESET_HABITS[0]) => {
+  const addPresetHabit = async (preset: typeof PRESET_HABITS[0], overrideDays?: number[]) => {
     if (!activeId) return
     setAddingPreset(preset.title)
     try {
-      const daysOfWeek = addForDay !== null ? [addForDay] : preset.daysOfWeek
+      const daysOfWeek = overrideDays ?? (addForDay !== null ? [addForDay] : preset.daysOfWeek)
       const frequency = daysOfWeek.length === 7 ? 'DAILY' : 'WEEKLY'
       await api.post('/habits', { ...preset, daysOfWeek, frequency, childId: activeId })
       fetchChildren()
@@ -523,6 +525,131 @@ export default function ParentView() {
     return 'Bonsoir'
   }
 
+  // ── Preset day configurator modal ───────────────────────────────────────────
+  const PresetDayModal = () => {
+    if (!selectedPreset) return null
+    const cat = getCategoryInfo(selectedPreset.category)
+    const freqPresets = [
+      { label: 'Tous les jours',  icon: '🔄', days: [1, 2, 3, 4, 5, 6, 0] as number[] | null },
+      { label: 'Jours scolaires', icon: '📚', days: [1, 2, 3, 4, 5]        as number[] | null },
+      { label: 'Week-end',        icon: '🎉', days: [6, 0]                  as number[] | null },
+      { label: 'Personnalisé',    icon: '✏️', days: null                                       },
+    ]
+    const toggleDay = (day: number) =>
+      setSelectedPresetDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+
+    const dayLabel = () => {
+      const n = selectedPresetDays.length
+      if (n === 0) return 'Aucun jour'
+      if (n === 7) return 'Tous les jours'
+      const names = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa']
+      return selectedPresetDays.slice().sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map(d => names[d]).join(' · ')
+    }
+
+    const handleAdd = async () => {
+      if (selectedPresetDays.length === 0) return
+      await addPresetHabit(selectedPreset, selectedPresetDays)
+      setSelectedPreset(null)
+    }
+
+    return (
+      <AnimatePresence>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[60] flex items-end"
+          onClick={() => setSelectedPreset(null)}>
+          <motion.div initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
+            className="w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-gray-800 text-base">📅 Choisir les jours</h3>
+              <button onClick={() => setSelectedPreset(null)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+            </div>
+
+            {/* Habit info */}
+            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
+              <span className="text-3xl">{selectedPreset.emoji}</span>
+              <div>
+                <p className="font-black text-gray-800">{selectedPreset.title}</p>
+                <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {selectedPreset.pointValue} pts</p>
+              </div>
+            </div>
+
+            {/* Frequency presets */}
+            <p className="text-sm font-bold text-gray-600 mb-2">Fréquence :</p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {freqPresets.map(fp => {
+                const matched = fp.days !== null
+                  && fp.days.length === selectedPresetDays.length
+                  && fp.days.every(d => selectedPresetDays.includes(d))
+                const customActive = fp.days === null
+                  && selectedPresetDays.length > 0
+                  && !freqPresets.filter(p => p.days !== null).some(p =>
+                      p.days!.length === selectedPresetDays.length && p.days!.every(d => selectedPresetDays.includes(d))
+                    )
+                const active = matched || customActive
+                return (
+                  <button key={fp.label} type="button"
+                    onClick={() => { if (fp.days !== null) setSelectedPresetDays(fp.days!) }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                      active ? 'bg-kids-orange text-white border-kids-orange shadow-sm' : 'bg-white text-gray-500 border-gray-200'
+                    }`}>
+                    <span className="text-base">{fp.icon}</span>
+                    <span>{fp.label}</span>
+                    {matched && fp.days && (
+                      <span className="ml-auto text-xs opacity-75">{fp.days.length}/7</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Visual week calendar */}
+            <p className="text-xs text-gray-400 font-semibold mb-2">Jours actifs :</p>
+            <div className="flex gap-1.5 mb-3">
+              {WEEK_DAYS.map(({ short, label, day }) => {
+                const selected = selectedPresetDays.includes(day)
+                return (
+                  <button key={day} type="button" onClick={() => toggleDay(day)} title={label}
+                    className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all ${
+                      selected ? 'bg-kids-orange border-kids-orange text-white shadow-sm' : 'bg-white border-gray-200 text-gray-400'
+                    }`}>
+                    <span className="text-[11px] font-black leading-none">{short}</span>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                      selected ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-300'
+                    }`}>
+                      {selected ? '✓' : '·'}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Summary */}
+            <div className="flex justify-center mb-5">
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                selectedPresetDays.length === 0 ? 'bg-red-50 text-red-400' : 'bg-orange-50 text-kids-orange'
+              }`}>
+                {selectedPresetDays.length === 0 ? '⚠️ Aucun jour sélectionné' : `📅 ${dayLabel()}`}
+              </span>
+            </div>
+
+            {/* Add button */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleAdd}
+              disabled={selectedPresetDays.length === 0 || addingPreset === selectedPreset.title}
+              className="w-full bg-kids-teal text-white font-black py-3.5 rounded-2xl text-base shadow-md disabled:opacity-60">
+              {addingPreset === selectedPreset.title ? '⏳ Ajout en cours...' : '✅ Ajouter cette habitude'}
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    )
+  }
+
   // ── Suggestions panel (modal overlay) ──────────────────────────────────────
   const SuggestionsPanel = () => (
     <AnimatePresence>
@@ -569,10 +696,9 @@ export default function ParentView() {
                       {alreadyAdded
                         ? <span className="text-green-400 font-bold text-lg">✓</span>
                         : <motion.button whileTap={{ scale: 0.9 }}
-                            disabled={addingPreset === preset.title}
-                            onClick={() => addPresetHabit(preset)}
-                            className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow disabled:opacity-50">
-                            {addingPreset === preset.title ? '⏳' : '+'}
+                            onClick={() => { setSelectedPreset(preset); setSelectedPresetDays(preset.daysOfWeek) }}
+                            className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow">
+                            +
                           </motion.button>
                       }
                     </div>
@@ -1047,6 +1173,7 @@ export default function ParentView() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+      <PresetDayModal />
       <SuggestionsPanel />
 
       {/* Hamburger panel */}
