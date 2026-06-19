@@ -166,9 +166,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Pr
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => {
-                    if (preset.days !== null) setForm(f => ({ ...f, daysOfWeek: preset.days! }))
-                  }}
+                  onClick={() => setForm(f => ({ ...f, daysOfWeek: preset.days ?? [] }))}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
                     active
                       ? 'bg-kids-orange text-white border-kids-orange shadow-sm'

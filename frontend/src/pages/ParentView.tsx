@@ -269,6 +269,7 @@ export default function ParentView() {
   const [editChildForm, setEditChildForm] = useState({ name: '', sex: '' as '' | 'GARCON' | 'FILLE', classe: '', birthDate: '', photoUrl: '' })
   const [habitDayFilter, setHabitDayFilter] = useState<'today' | 'all'>('today')
   const [showDayFilterMenu, setShowDayFilterMenu] = useState(false)
+  const [viewDate, setViewDate] = useState(new Date().toISOString().split('T')[0])
 
   // Change password
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -592,7 +593,7 @@ export default function ParentView() {
                 const active = matched || customActive
                 return (
                   <button key={fp.label} type="button"
-                    onClick={() => { if (fp.days !== null) setSelectedPresetDays(fp.days!) }}
+                    onClick={() => setSelectedPresetDays(fp.days ?? [])}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
                       active ? 'bg-kids-orange text-white border-kids-orange shadow-sm' : 'bg-white text-gray-500 border-gray-200'
                     }`}>
@@ -715,9 +716,16 @@ export default function ParentView() {
   const AccueilTab = () => {
     if (!activeChild) return null
     const today = new Date().toISOString().split('T')[0]
-    const todayDone = todayHabits.filter((h: any) => completedByHabit.get(h.id)?.has(today))
-    const todayTodo = todayHabits.filter((h: any) => !completedByHabit.get(h.id)?.has(today))
-    const progressPct = todayHabits.length > 0 ? Math.round((todayDone.length / todayHabits.length) * 100) : 0
+    const isToday = viewDate === today
+
+    // Habits and completions for the selected date
+    const viewDow = new Date(viewDate + 'T12:00:00').getDay()
+    const viewHabits = (activeChild?.habits ?? []).filter((h: any) =>
+      (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(viewDow)
+    )
+    const viewDone = viewHabits.filter((h: any) => completedByHabit.get(h.id)?.has(viewDate))
+    const viewTodo = viewHabits.filter((h: any) => !completedByHabit.get(h.id)?.has(viewDate))
+    const progressPct = viewHabits.length > 0 ? Math.round((viewDone.length / viewHabits.length) * 100) : 0
 
     const totalScheduledWeek = last7Days.reduce((acc, { date }) => {
       const dow = new Date(date + 'T12:00:00').getDay()
@@ -729,7 +737,7 @@ export default function ParentView() {
       ? Math.round(Math.min(100, (weeklyCompletions.length / totalScheduledWeek) * 100))
       : 0
 
-    const dateFormatted = new Date().toLocaleDateString('fr-FR', {
+    const dateFormatted = new Date(viewDate + 'T12:00:00').toLocaleDateString('fr-FR', {
       weekday: 'long', day: 'numeric', month: 'long',
     }).replace(/^\w/, c => c.toUpperCase())
 
@@ -774,14 +782,22 @@ export default function ParentView() {
           </button>
         </div>
 
+        {/* Vue enfant shortcut */}
+        <div className="flex justify-end">
+          <button onClick={() => navigate('/child')}
+            className="flex items-center gap-1.5 text-xs text-kids-teal font-bold bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-100">
+            👁️ Vue enfant →
+          </button>
+        </div>
+
         {/* 5-col stats */}
         <div className="grid grid-cols-5 gap-1.5">
           {[
-            { icon: '⭐', value: activeChild.xp,                              label: 'Points',        color: 'text-yellow-500' },
-            { icon: '🔥', value: activeChild.streakDays,                      label: 'Série',         color: 'text-orange-500' },
-            { icon: '🏆', value: badgesCount,                                 label: 'Badges',        color: 'text-purple-500' },
-            { icon: '📈', value: `${weeklyPctReal}%`,                         label: 'Cette semaine', color: 'text-green-500'  },
-            { icon: '🎯', value: `${todayDone.length}/${todayHabits.length}`, label: "Aujourd'hui",   color: 'text-blue-500'   },
+            { icon: '⭐', value: activeChild.xp,                            label: 'Points',        color: 'text-yellow-500' },
+            { icon: '🔥', value: activeChild.streakDays,                    label: 'Série',         color: 'text-orange-500' },
+            { icon: '🏆', value: badgesCount,                               label: 'Badges',        color: 'text-purple-500' },
+            { icon: '📈', value: `${weeklyPctReal}%`,                       label: 'Cette semaine', color: 'text-green-500'  },
+            { icon: '🎯', value: `${viewDone.length}/${viewHabits.length}`, label: isToday ? "Aujourd'hui" : 'Ce jour', color: 'text-blue-500' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <span className="text-sm">{s.icon}</span>
@@ -797,15 +813,27 @@ export default function ParentView() {
             <div className="flex items-start justify-between gap-2 mb-3">
               <div>
                 <p className="font-black text-gray-800 text-sm leading-snug">
-                  Voici les habitudes de {activeChild.name} pour aujourd'hui :
+                  Habitudes de {activeChild.name} — {isToday ? "aujourd'hui" : 'ce jour'} :
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{dateFormatted}</p>
               </div>
-              <button className="flex items-center gap-1 text-xs text-gray-500 font-bold bg-gray-50 px-2 py-1.5 rounded-xl flex-shrink-0 border border-gray-200">
-                📅 Changer de jour
-              </button>
+              {/* Changer de jour — native date picker overlay */}
+              <div className="relative flex-shrink-0">
+                <button className={`flex items-center gap-1 text-xs font-bold px-2 py-1.5 rounded-xl border pointer-events-none ${
+                  isToday ? 'text-gray-500 bg-gray-50 border-gray-200' : 'text-kids-orange bg-orange-50 border-kids-orange'
+                }`}>
+                  {isToday ? '📅 Changer de jour' : '🔄 Aujourd\'hui'}
+                </button>
+                <input
+                  type="date"
+                  value={viewDate}
+                  max={today}
+                  onChange={e => setViewDate(e.target.value || today)}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                />
+              </div>
             </div>
-            {todayHabits.length > 0 && (
+            {viewHabits.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-gray-600">Progression du jour</span>
@@ -820,18 +848,18 @@ export default function ParentView() {
                   />
                 </div>
                 <p className="text-xs text-gray-400 text-right mt-1">
-                  {todayDone.length}/{todayHabits.length} habitudes réalisées
+                  {viewDone.length}/{viewHabits.length} habitudes réalisées
                 </p>
               </div>
             )}
           </div>
 
-          {todayTodo.length > 0 && (
+          {viewTodo.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-orange-50">
-                <p className="text-xs font-black text-kids-orange">À faire aujourd'hui ({todayTodo.length})</p>
+                <p className="text-xs font-black text-kids-orange">À faire ({viewTodo.length})</p>
               </div>
-              {todayTodo.map((habit: any) => (
+              {viewTodo.map((habit: any) => (
                 <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50">
                   <div className="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
                   <span className="text-xl">{habit.emoji}</span>
@@ -842,12 +870,12 @@ export default function ParentView() {
             </div>
           )}
 
-          {todayDone.length > 0 && (
+          {viewDone.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-green-50">
-                <p className="text-xs font-black text-green-600">Déjà réalisées ({todayDone.length})</p>
+                <p className="text-xs font-black text-green-600">Déjà réalisées ({viewDone.length})</p>
               </div>
-              {todayDone.map((habit: any) => (
+              {viewDone.map((habit: any) => (
                 <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50 opacity-60">
                   <div className="w-5 h-5 rounded bg-green-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-xs font-bold">✓</span>
@@ -860,10 +888,10 @@ export default function ParentView() {
             </div>
           )}
 
-          {todayHabits.length === 0 && (
+          {viewHabits.length === 0 && (
             <div className="text-center py-8 px-4">
               <p className="text-3xl mb-2">🌱</p>
-              <p className="text-sm text-gray-400 font-semibold">Aucune habitude pour aujourd'hui</p>
+              <p className="text-sm text-gray-400 font-semibold">Aucune habitude ce jour-là</p>
               <button onClick={() => setShowSuggestions(true)}
                 className="mt-3 bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
                 + Ajouter
@@ -871,13 +899,18 @@ export default function ParentView() {
             </div>
           )}
 
-          {todayHabits.length > 0 && (
-            <button
-              onClick={() => setNavTab('habitudes')}
-              className="w-full py-3 text-xs text-kids-orange font-bold border-t border-gray-100 text-center"
-            >
-              Voir toutes les habitudes de {activeChild.name} →
-            </button>
+          {viewHabits.length > 0 && (
+            <div className="flex border-t border-gray-100">
+              <button onClick={() => setNavTab('habitudes')}
+                className="flex-1 py-3 text-xs text-kids-orange font-bold text-center">
+                Voir toutes les habitudes →
+              </button>
+              <div className="w-px bg-gray-100" />
+              <button onClick={() => navigate('/child')}
+                className="flex-1 py-3 text-xs text-kids-teal font-bold text-center">
+                👁️ Vue enfant →
+              </button>
+            </div>
           )}
         </div>
 
@@ -888,16 +921,16 @@ export default function ParentView() {
               <h3 className="font-black text-gray-800 text-sm">Progression de la famille</h3>
               <button onClick={() => setNavTab('habitudes')}
                 className="text-xs text-kids-orange font-bold">
-                Voir tous les enfants →
+                Voir tous →
               </button>
             </div>
             <div className={`grid gap-4 ${children.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {children.map(child => {
-                const todayDow = new Date().getDay()
+                const childDow = new Date().getDay()
                 const childTotal = (child.habits ?? []).filter((h: any) =>
-                  (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(todayDow)
+                  (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(childDow)
                 ).length
-                const childDone = child.id === activeId ? todayDone.length : 0
+                const childDone = child.id === activeId ? viewDone.length : 0
                 const childPct = child.id === activeId ? progressPct : 0
                 return (
                   <button key={child.id} onClick={() => setActiveId(child.id)}
