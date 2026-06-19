@@ -26,6 +26,8 @@ app.register(cors, {
     /^https:\/\/.*\.onrender\.com$/,
     /^https:\/\/.*\.netlify\.app$/,
     /^https:\/\/.*\.fly\.dev$/,
+    /^https:\/\/.*\.pages\.dev$/,
+    /^https:\/\/.*\.workers\.dev$/,
     /^http:\/\/192\.168\./,
     /^http:\/\/10\./,
     /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./,
