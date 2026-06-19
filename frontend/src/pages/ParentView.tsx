@@ -588,149 +588,155 @@ export default function ParentView() {
   // ── Accueil tab ─────────────────────────────────────────────────────────────
   const AccueilTab = () => {
     if (!activeChild) return null
-    const showLimit = 5
-    const age = getAge(activeChild.birthDate)
-    const displayedHabits = habitDayFilter === 'today' ? todayHabits : (activeChild?.habits ?? [])
+    const today = new Date().toISOString().split('T')[0]
+    const todayDone = todayHabits.filter((h: any) => completedByHabit.get(h.id)?.has(today))
+    const todayTodo = todayHabits.filter((h: any) => !completedByHabit.get(h.id)?.has(today))
+    const progressPct = todayHabits.length > 0 ? Math.round((todayDone.length / todayHabits.length) * 100) : 0
+
+    const totalScheduledWeek = last7Days.reduce((acc, { date }) => {
+      const dow = new Date(date + 'T12:00:00').getDay()
+      return acc + (activeChild?.habits ?? []).filter((h: any) =>
+        (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(dow)
+      ).length
+    }, 0)
+    const weeklyPctReal = totalScheduledWeek > 0
+      ? Math.round(Math.min(100, (weeklyCompletions.length / totalScheduledWeek) * 100))
+      : 0
+
+    const dateFormatted = new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    }).replace(/^\w/, c => c.toUpperCase())
+
     return (
       <div className="space-y-4">
-        {/* Child card */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-4">
-          {activeChild.photoUrl
-            ? <img src={activeChild.photoUrl} className="w-16 h-16 rounded-full object-cover border-3 border-kids-orange shadow-md" />
-            : <div className="w-16 h-16 rounded-full bg-gradient-to-br from-kids-orange to-yellow-400 flex items-center justify-center text-3xl shadow-md">
-                {activeChild.avatarEmoji}
-              </div>
-          }
-          <div className="flex-1">
-            <h2 className="font-black text-gray-800 text-lg">{activeChild.name}</h2>
-            {age && <p className="text-sm text-gray-400 font-semibold">{age}{activeChild.classe ? ` · ${activeChild.classe}` : ''}</p>}
-          </div>
-          <button onClick={() => navigate('/child')}
-            className="bg-kids-orange/10 text-kids-orange font-bold text-xs px-3 py-2 rounded-xl">
-            Vue enfant →
+
+        {/* Children horizontal selector */}
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
+          {children.map(child => {
+            const isActive = child.id === activeId
+            const age = getAge(child.birthDate)
+            return (
+              <button
+                key={child.id}
+                onClick={() => setActiveId(child.id)}
+                className={`flex-shrink-0 flex items-center gap-2.5 p-3 rounded-2xl border-2 transition-all bg-white ${
+                  isActive ? 'border-kids-orange shadow-md' : 'border-gray-100'
+                }`}
+              >
+                {child.photoUrl
+                  ? <img src={child.photoUrl} className="w-12 h-12 rounded-full object-cover flex-shrink-0" alt={child.name} />
+                  : <div className="w-12 h-12 rounded-full bg-gradient-to-br from-kids-orange to-yellow-400 flex items-center justify-center text-2xl flex-shrink-0">
+                      {child.avatarEmoji}
+                    </div>
+                }
+                <div className="text-left min-w-0">
+                  <p className={`font-black text-sm ${isActive ? 'text-kids-orange' : 'text-gray-800'}`}>{child.name}</p>
+                  <p className="text-xs text-gray-400">{[age, child.classe].filter(Boolean).join(' • ') || ' '}</p>
+                  {isActive && (
+                    <span className="text-[10px] bg-kids-orange text-white font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block">Actif</span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+          <button
+            onClick={() => setShowAddChild(true)}
+            className="flex-shrink-0 flex items-center gap-2 p-3 rounded-2xl border-2 border-dashed border-gray-200 bg-white text-gray-400"
+          >
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl">+</div>
+            <p className="font-bold text-xs whitespace-nowrap">Ajouter<br/>un enfant</p>
           </button>
         </div>
 
-        {/* Stats card */}
-        <div className="grid grid-cols-4 gap-2">
+        {/* 5-col stats */}
+        <div className="grid grid-cols-5 gap-1.5">
           {[
-            { icon: '⭐', value: weeklyPoints, label: 'Points', color: 'bg-yellow-50 border-yellow-200', textColor: 'text-yellow-600' },
-            { icon: '✅', value: `${weeklyCompletions.length}`, label: 'Complétées', color: 'bg-green-50 border-green-200', textColor: 'text-green-600' },
-            { icon: '🔥', value: activeChild.streakDays, label: 'Série', color: 'bg-orange-50 border-orange-200', textColor: 'text-orange-600' },
-            { icon: '🏆', value: badgesCount, label: 'Badges', color: 'bg-purple-50 border-purple-200', textColor: 'text-purple-600' },
+            { icon: '⭐', value: activeChild.xp,                              label: 'Points',        color: 'text-yellow-500' },
+            { icon: '🔥', value: activeChild.streakDays,                      label: 'Série',         color: 'text-orange-500' },
+            { icon: '🏆', value: badgesCount,                                 label: 'Badges',        color: 'text-purple-500' },
+            { icon: '📈', value: `${weeklyPctReal}%`,                         label: 'Cette semaine', color: 'text-green-500'  },
+            { icon: '🎯', value: `${todayDone.length}/${todayHabits.length}`, label: "Aujourd'hui",   color: 'text-blue-500'   },
           ].map(s => (
-            <div key={s.label} className={`rounded-2xl p-2.5 border-2 ${s.color} flex flex-col items-center text-center`}>
-              <span className="text-lg mb-0.5">{s.icon}</span>
-              <p className={`text-lg font-black leading-none ${s.textColor}`}>{s.value}</p>
-              <p className="text-xs text-gray-500 font-semibold mt-1 leading-tight">{s.label}</p>
+            <div key={s.label} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col items-center text-center">
+              <span className="text-sm">{s.icon}</span>
+              <p className={`text-xs font-black leading-tight mt-0.5 ${s.color}`}>{s.value}</p>
+              <p className="text-[9px] text-gray-400 font-semibold mt-0.5 leading-tight">{s.label}</p>
             </div>
           ))}
         </div>
 
-        {/* Today's habits */}
+        {/* Today's habits card */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex justify-between items-center px-4 py-3 border-b border-gray-50">
-            <div>
-              <h3 className="font-black text-gray-800">Mes habitudes</h3>
-              <p className="text-xs text-gray-400">{displayedHabits.length} habitudes</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Aujourd'hui filter */}
-              <div className="relative">
-                <button onClick={() => setShowDayFilterMenu(v => !v)}
-                  className="flex items-center gap-1 text-xs font-bold text-kids-orange bg-orange-50 px-3 py-1.5 rounded-xl">
-                  {habitDayFilter === 'today' ? "Aujourd'hui" : 'Tout'} ▾
-                </button>
-                {showDayFilterMenu && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowDayFilterMenu(false)} />
-                    <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden w-32">
-                      <button onClick={() => { setHabitDayFilter('today'); setShowDayFilterMenu(false) }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-bold ${habitDayFilter === 'today' ? 'text-kids-orange' : 'text-gray-600'}`}>
-                        Aujourd'hui
-                      </button>
-                      <button onClick={() => { setHabitDayFilter('all'); setShowDayFilterMenu(false) }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-bold border-t border-gray-100 ${habitDayFilter === 'all' ? 'text-kids-orange' : 'text-gray-600'}`}>
-                        Toutes
-                      </button>
-                    </div>
-                  </>
-                )}
+          <div className="px-4 pt-4 pb-3">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <p className="font-black text-gray-800 text-sm leading-snug">
+                  Voici les habitudes de {activeChild.name} pour aujourd'hui :
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">{dateFormatted}</p>
               </div>
-              <button onClick={() => setNavTab('habitudes')}
-                className="text-xs text-gray-400 font-bold">
-                Tout voir →
+              <button className="flex items-center gap-1 text-xs text-gray-500 font-bold bg-gray-50 px-2 py-1.5 rounded-xl flex-shrink-0 border border-gray-200">
+                📅 Changer de jour
               </button>
             </div>
+            {todayHabits.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-gray-600">Progression du jour</span>
+                  <span className="text-xs font-black text-green-600">{progressPct}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <motion.div
+                    className="bg-green-500 h-2.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPct}%` }}
+                    transition={{ duration: 0.6 }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 text-right mt-1">
+                  {todayDone.length}/{todayHabits.length} habitudes réalisées
+                </p>
+              </div>
+            )}
           </div>
-          {/* Category pills */}
-          {usedCategories.length > 1 && (
-            <div className="flex gap-2 px-4 py-2 overflow-x-auto border-b border-gray-50">
-              <button onClick={() => setCategoryFilter('ALL')}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold ${categoryFilter === 'ALL' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                Toutes
-              </button>
-              {usedCategories.map(catId => {
-                const cat = getCategoryInfo(catId)
-                return (
-                  <button key={catId} onClick={() => setCategoryFilter(catId)}
-                    className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${categoryFilter === catId ? 'bg-kids-orange text-white' : 'bg-gray-100 text-gray-500'}`}>
-                    {cat.emoji} {cat.label}
-                  </button>
-                )
-              })}
+
+          {todayTodo.length > 0 && (
+            <div>
+              <div className="px-4 py-2 bg-orange-50">
+                <p className="text-xs font-black text-kids-orange">À faire aujourd'hui ({todayTodo.length})</p>
+              </div>
+              {todayTodo.map((habit: any) => (
+                <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50">
+                  <div className="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
+                  <span className="text-xl">{habit.emoji}</span>
+                  <p className="flex-1 font-semibold text-gray-800 text-sm">{habit.title}</p>
+                  <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ +{habit.pointValue}</span>
+                </div>
+              ))}
             </div>
           )}
-          {/* Habit list with 7-day circles */}
-          <div className="divide-y divide-gray-50">
-            {displayedHabits
-              .filter((h: any) => categoryFilter === 'ALL' || (h.category || 'GENERAL') === categoryFilter)
-              .slice(0, showLimit)
-              .map((habit: any) => {
-                const cat = getCategoryInfo(habit.category || 'GENERAL')
-                const completed = completedByHabit.get(habit.id) ?? new Set()
-                return (
-                  <div key={habit.id} className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{habit.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
-                        <p className="text-xs text-gray-400">{cat.emoji} {cat.label}</p>
-                      </div>
-                      <span className="text-xs font-bold text-yellow-500">⭐ {habit.pointValue}</span>
-                    </div>
-                    {/* 7-day circles */}
-                    <div className="flex gap-1.5 mt-2 ml-11">
-                      {last7Days.map(({ date, label }) => {
-                        const dow = new Date(date + 'T12:00:00').getDay()
-                        const scheduled = (habit.daysOfWeek ?? []).length === 7 || (habit.daysOfWeek ?? []).includes(dow)
-                        const done = completed.has(date)
-                        return (
-                          <div key={date} className="flex flex-col items-center gap-0.5">
-                            <span className={`text-xs font-bold ${scheduled ? 'text-gray-500' : 'text-gray-200'}`}>{label}</span>
-                            {done
-                              ? <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"><span className="text-white text-xs font-bold">✓</span></div>
-                              : scheduled
-                                ? <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-                                : <div className="w-5 h-5 rounded-full border border-gray-100 opacity-30" />
-                            }
-                          </div>
-                        )
-                      })}
-                    </div>
+
+          {todayDone.length > 0 && (
+            <div>
+              <div className="px-4 py-2 bg-green-50">
+                <p className="text-xs font-black text-green-600">Déjà réalisées ({todayDone.length})</p>
+              </div>
+              {todayDone.map((habit: any) => (
+                <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50 opacity-60">
+                  <div className="w-5 h-5 rounded bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-xs font-bold">✓</span>
                   </div>
-                )
-              })}
-          </div>
-          {displayedHabits.length > showLimit && (
-            <button onClick={() => setNavTab('habitudes')}
-              className="w-full py-3 text-sm text-kids-orange font-bold border-t border-gray-50">
-              Voir toutes les habitudes ({displayedHabits.length}) →
-            </button>
+                  <span className="text-xl">{habit.emoji}</span>
+                  <p className="flex-1 font-semibold text-gray-500 text-sm line-through">{habit.title}</p>
+                  <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ +{habit.pointValue}</span>
+                </div>
+              ))}
+            </div>
           )}
-          {displayedHabits.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-4xl mb-2">🌱</p>
+
+          {todayHabits.length === 0 && (
+            <div className="text-center py-8 px-4">
+              <p className="text-3xl mb-2">🌱</p>
               <p className="text-sm text-gray-400 font-semibold">Aucune habitude pour aujourd'hui</p>
               <button onClick={() => setShowSuggestions(true)}
                 className="mt-3 bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
@@ -738,30 +744,67 @@ export default function ParentView() {
               </button>
             </div>
           )}
+
+          {todayHabits.length > 0 && (
+            <button
+              onClick={() => setNavTab('habitudes')}
+              className="w-full py-3 text-xs text-kids-orange font-bold border-t border-gray-100 text-center"
+            >
+              Voir toutes les habitudes de {activeChild.name} →
+            </button>
+          )}
         </div>
 
-        {/* Weekly progress + streak */}
-        <div className="flex gap-3">
-          <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
-            <p className="font-black text-gray-800 text-sm mb-2">Série actuelle</p>
-            <div className="flex items-center gap-2">
-              <span className="text-3xl">🔥</span>
-              <div>
-                <p className="text-2xl font-black text-orange-500">{activeChild.streakDays}</p>
-                <p className="text-xs text-gray-400">jours</p>
-              </div>
+        {/* Family progress */}
+        {children.length > 1 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-gray-800 text-sm">Progression de la famille</h3>
+              <button onClick={() => setNavTab('habitudes')}
+                className="text-xs text-kids-orange font-bold">
+                Voir tous les enfants →
+              </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">🐉 {activeChild.streakDays > 0 ? 'Bravo ! Continue !' : 'Lance ta série !'}</p>
+            <div className={`grid gap-4 ${children.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {children.map(child => {
+                const todayDow = new Date().getDay()
+                const childTotal = (child.habits ?? []).filter((h: any) =>
+                  (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(todayDow)
+                ).length
+                const childDone = child.id === activeId ? todayDone.length : 0
+                const childPct = child.id === activeId ? progressPct : 0
+                return (
+                  <button key={child.id} onClick={() => setActiveId(child.id)}
+                    className="flex flex-col items-center text-center">
+                    {child.photoUrl
+                      ? <img src={child.photoUrl} className="w-14 h-14 rounded-full object-cover mb-1.5 border-2 border-gray-100" alt={child.name} />
+                      : <div className="w-14 h-14 rounded-full bg-gradient-to-br from-kids-orange to-yellow-400 flex items-center justify-center text-2xl mb-1.5">
+                          {child.avatarEmoji}
+                        </div>
+                    }
+                    <p className="font-black text-gray-800 text-xs mb-0.5">{child.name}</p>
+                    {child.id === activeId
+                      ? <p className={`font-black text-sm ${childPct >= 80 ? 'text-green-500' : childPct >= 40 ? 'text-orange-400' : 'text-red-400'}`}>{childPct}%</p>
+                      : <p className="font-black text-sm text-gray-300">—</p>
+                    }
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 my-1">
+                      <div
+                        className={`h-1.5 rounded-full ${childPct >= 80 ? 'bg-green-500' : childPct >= 40 ? 'bg-orange-400' : 'bg-red-400'}`}
+                        style={{ width: `${childPct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      {child.id === activeId
+                        ? `${childDone}/${childTotal} habitudes réalisées`
+                        : `${childTotal} habitudes`}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
-            <p className="font-black text-gray-800 text-sm mb-2">Cette semaine</p>
-            <DonutChart
-              completed={todayCompleted}
-              inProgress={Math.max(0, todayHabits.length - todayCompleted)}
-              missed={missedCount}
-            />
-          </div>
-        </div>
+        )}
+
       </div>
     )
   }
@@ -1259,19 +1302,27 @@ export default function ParentView() {
             </button>
             <div>
               <p className="text-xs text-gray-400 font-semibold">{greeting()} 👋</p>
-              <button
-                onClick={() => setShowChildDropdown(v => !v)}
-                className="flex items-center gap-1 font-black text-gray-800 text-base">
-                {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
-                {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
-              </button>
+              {navTab === 'accueil'
+                ? <p className="font-black text-gray-800 text-base">Progrès de mes enfants</p>
+                : <button
+                    onClick={() => setShowChildDropdown(v => !v)}
+                    className="flex items-center gap-1 font-black text-gray-800 text-base">
+                    {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
+                    {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
+                  </button>
+              }
             </div>
           </div>
           <div className="flex items-center gap-2">
             {/* Notification bell */}
             <button onClick={() => setShowNotifPanel(true)}
-              className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-lg">
+              className="w-9 h-9 bg-gray-50 rounded-xl flex items-center justify-center text-lg relative">
               🔔
+              {pendingToday > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                  {pendingToday}
+                </span>
+              )}
             </button>
             {/* Child avatar — cliquable pour changer la photo */}
             <button onClick={() => setEditingAvatar(v => !v)} className="relative">
