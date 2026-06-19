@@ -14,6 +14,7 @@ export const CATEGORIES = [
   { id: 'SOMMEIL',      label: 'Sommeil',      emoji: '😴' },
   { id: 'CREATIVITE',   label: 'Créativité',   emoji: '🎨' },
   { id: 'MENAGE',       label: 'Ménage',       emoji: '🧹' },
+  { id: 'AUTONOMIE',    label: 'Autonomie',    emoji: '🦋' },
   { id: 'NATURE',       label: 'Nature',       emoji: '🌿' },
   { id: 'SOCIAL',       label: 'Social',       emoji: '👫' },
   { id: 'SECURITE',     label: 'Sécurité',     emoji: '🛡️' },

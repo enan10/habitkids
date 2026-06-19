@@ -87,6 +87,16 @@ const PRESET_HABITS = [
   { title: 'Éviter les produits dangereux',         emoji: '⚠️', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
   { title: 'Ne pas se pencher aux fenêtres',        emoji: '🪟', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
   { title: 'Ne pas jouer dans la rue',              emoji: '🛑', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se préparer tout seul le matin',        emoji: '🌅', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Préparer son cartable la veille',       emoji: '🎒', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4] },
+  { title: 'S\'habiller tout seul',                 emoji: '👕', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Choisir sa tenue du lendemain',         emoji: '👗', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Attacher ses lacets tout seul',         emoji: '👟', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Préparer son goûter',                   emoji: '🥪', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Débarrasser son assiette',              emoji: '🍽️', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { title: 'Se réveiller seul à l\'heure',          emoji: '⏰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
+  { title: 'Gérer son argent de poche',             emoji: '💰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [6] },
+  { title: 'Mettre son linge sale au panier',       emoji: '🧺', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
 ]
 
 function getCategoryInfo(id: string) {
