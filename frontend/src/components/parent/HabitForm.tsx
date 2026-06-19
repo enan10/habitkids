@@ -30,10 +30,11 @@ const DAYS = [
   { label: 'Di', full: 'Dimanche', day: 0 },
 ]
 
-const QUICK_SELECT = [
-  { label: 'Tous les jours', days: [1, 2, 3, 4, 5, 6, 0] },
-  { label: 'Lun – Ven',      days: [1, 2, 3, 4, 5] },
-  { label: 'Week-end',       days: [6, 0] },
+const FREQ_PRESETS: { label: string; icon: string; days: number[] | null }[] = [
+  { label: 'Tous les jours',  icon: '🔄', days: [1, 2, 3, 4, 5, 6, 0] },
+  { label: 'Jours scolaires', icon: '📚', days: [1, 2, 3, 4, 5]       },
+  { label: 'Week-end',        icon: '🎉', days: [6, 0]                 },
+  { label: 'Personnalisé',    icon: '✏️', days: null                   },
 ]
 
 interface Props {
@@ -144,50 +145,83 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Pr
           </div>
         </div>
 
-        {/* Day picker */}
+        {/* Fréquence & jours */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-bold text-gray-600">📅 Jours</label>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              form.daysOfWeek.length === 0
-                ? 'bg-red-50 text-red-400'
-                : 'bg-blue-50 text-kids-blue'
-            }`}>
-              {dayLabel()}
-            </span>
-          </div>
+          <label className="text-sm font-bold text-gray-600 mb-3 block">📅 Fréquence & jours</label>
 
-          {/* Quick select shortcuts */}
-          <div className="flex gap-2 mb-2">
-            {QUICK_SELECT.map(q => {
-              const active = q.days.length === form.daysOfWeek.length &&
-                q.days.every(d => form.daysOfWeek.includes(d))
+          {/* Frequency presets */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {FREQ_PRESETS.map(preset => {
+              const matched = preset.days !== null
+                && preset.days.length === form.daysOfWeek.length
+                && preset.days.every(d => form.daysOfWeek.includes(d))
+              const customActive = preset.days === null
+                && form.daysOfWeek.length > 0
+                && !FREQ_PRESETS.filter(p => p.days !== null).some(p =>
+                    p.days!.length === form.daysOfWeek.length
+                    && p.days!.every(d => form.daysOfWeek.includes(d))
+                  )
+              const active = matched || customActive
               return (
-                <button key={q.label} type="button"
-                  onClick={() => setForm(f => ({ ...f, daysOfWeek: q.days }))}
-                  className={`flex-1 py-1.5 rounded-xl text-xs font-black border-2 transition-all ${
-                    active ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'
-                  }`}>
-                  {q.label}
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    if (preset.days !== null) setForm(f => ({ ...f, daysOfWeek: preset.days! }))
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
+                    active
+                      ? 'bg-kids-orange text-white border-kids-orange shadow-sm'
+                      : 'bg-white text-gray-500 border-gray-200'
+                  }`}
+                >
+                  <span className="text-base">{preset.icon}</span>
+                  <span>{preset.label}</span>
+                  {matched && preset.days && (
+                    <span className="ml-auto text-xs opacity-75">{preset.days.length}/7</span>
+                  )}
                 </button>
               )
             })}
           </div>
 
-          {/* Individual day buttons */}
-          <div className="flex gap-1">
-            {DAYS.map(({ label, day }) => (
-              <button
-                key={day} type="button" onClick={() => toggleDay(day)}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all border-2 ${
-                  form.daysOfWeek.includes(day)
-                    ? 'bg-kids-blue text-white border-kids-blue shadow'
-                    : 'bg-white text-gray-400 border-gray-200'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          {/* Visual week calendar */}
+          <p className="text-xs text-gray-400 font-semibold mb-2">Jours actifs :</p>
+          <div className="flex gap-1.5">
+            {DAYS.map(({ label, full, day }) => {
+              const selected = form.daysOfWeek.includes(day)
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  title={full}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all ${
+                    selected
+                      ? 'bg-kids-orange border-kids-orange text-white shadow-sm'
+                      : 'bg-white border-gray-200 text-gray-400'
+                  }`}
+                >
+                  <span className="text-[11px] font-black leading-none">{label}</span>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                    selected ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-300'
+                  }`}>
+                    {selected ? '✓' : '·'}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Summary */}
+          <div className="mt-2 flex justify-center">
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+              form.daysOfWeek.length === 0
+                ? 'bg-red-50 text-red-400'
+                : 'bg-orange-50 text-kids-orange'
+            }`}>
+              {form.daysOfWeek.length === 0 ? '⚠️ Aucun jour sélectionné' : `📅 ${dayLabel()}`}
+            </span>
           </div>
         </div>
 
