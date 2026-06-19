@@ -8,10 +8,12 @@ const habitSchema = z.object({
   emoji: z.string(),
   color: z.string().default('#4ECDC4'),
   category: z.string().default('GENERAL'),
-  frequency: z.enum(['DAILY', 'WEEKLY']).default('DAILY'),
+  frequency: z.enum(['DAILY', 'WEEKLY', 'INTERVAL', 'MONTHLY']).default('WEEKLY'),
   timeOfDay: z.enum(['MORNING', 'AFTERNOON', 'EVENING', 'ANYTIME']).default('ANYTIME'),
   pointValue: z.number().int().min(1).max(100).default(10),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).default([0,1,2,3,4,5,6]),
+  intervalDays: z.number().int().min(2).max(365).optional(),
+  dayOfMonth: z.number().int().min(1).max(31).optional(),
   order: z.number().int().default(0),
 })
 

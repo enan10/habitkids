@@ -62,9 +62,11 @@ model Habit {
   emoji       String
   color       String            @default("#4ECDC4")
   category    String            @default("GENERAL")
-  frequency   Frequency         @default(DAILY)
-  daysOfWeek  Int[]     // [0..6] 0=Sun, 1=Mon, ..., 6=Sat. Empty = all days for DAILY
-  timeOfDay   TimeOfDay         @default(ANYTIME)
+  frequency    Frequency         @default(WEEKLY)
+  daysOfWeek   Int[]
+  intervalDays Int?              // for INTERVAL: repeat every N days from createdAt
+  dayOfMonth   Int?              // for MONTHLY: day of month (1-31)
+  timeOfDay    TimeOfDay         @default(ANYTIME)
   pointValue  Int               @default(10)
   isActive    Boolean           @default(true)
   order       Int               @default(0)
@@ -75,6 +77,8 @@ model Habit {
 enum Frequency {
   DAILY
   WEEKLY
+  INTERVAL  // every N days
+  MONTHLY   // once a month on a specific day
 }
 
 enum TimeOfDay {

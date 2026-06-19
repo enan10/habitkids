@@ -103,6 +103,24 @@ function getCategoryInfo(id: string) {
   return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
 }
 
+function isHabitDueOnDate(habit: any, date: string): boolean {
+  const freq: string = habit.frequency ?? 'WEEKLY'
+  if (freq === 'DAILY') return true
+  if (freq === 'INTERVAL') {
+    const n = habit.intervalDays ?? 1
+    const created = new Date(habit.createdAt).toISOString().split('T')[0]
+    const diff = Math.round((new Date(date).getTime() - new Date(created).getTime()) / 86400000)
+    return diff >= 0 && diff % n === 0
+  }
+  if (freq === 'MONTHLY') {
+    return new Date(date + 'T12:00:00').getDate() === (habit.dayOfMonth ?? 1)
+  }
+  // WEEKLY
+  const dow = new Date(date + 'T12:00:00').getDay()
+  const days: number[] = habit.daysOfWeek ?? []
+  return days.length === 7 || days.includes(dow)
+}
+
 function DonutChart({ completed, inProgress, missed }: { completed: number; inProgress: number; missed: number }) {
   const r = 36
   const circ = 2 * Math.PI * r
@@ -341,10 +359,8 @@ export default function ParentView() {
   }, [weeklyCompletions])
 
   const todayHabits = useMemo(() => {
-    const todayDow = new Date().getDay()
-    return (activeChild?.habits ?? []).filter((h: any) =>
-      (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(todayDow)
-    )
+    const today = new Date().toISOString().split('T')[0]
+    return (activeChild?.habits ?? []).filter((h: any) => isHabitDueOnDate(h, today))
   }, [activeChild])
 
   const todayCompleted = todayHabits.filter((h: any) => {
@@ -719,20 +735,14 @@ export default function ParentView() {
     const isToday = viewDate === today
 
     // Habits and completions for the selected date
-    const viewDow = new Date(viewDate + 'T12:00:00').getDay()
-    const viewHabits = (activeChild?.habits ?? []).filter((h: any) =>
-      (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(viewDow)
-    )
+    const viewHabits = (activeChild?.habits ?? []).filter((h: any) => isHabitDueOnDate(h, viewDate))
     const viewDone = viewHabits.filter((h: any) => completedByHabit.get(h.id)?.has(viewDate))
     const viewTodo = viewHabits.filter((h: any) => !completedByHabit.get(h.id)?.has(viewDate))
     const progressPct = viewHabits.length > 0 ? Math.round((viewDone.length / viewHabits.length) * 100) : 0
 
-    const totalScheduledWeek = last7Days.reduce((acc, { date }) => {
-      const dow = new Date(date + 'T12:00:00').getDay()
-      return acc + (activeChild?.habits ?? []).filter((h: any) =>
-        (h.daysOfWeek ?? []).length === 7 || (h.daysOfWeek ?? []).includes(dow)
-      ).length
-    }, 0)
+    const totalScheduledWeek = last7Days.reduce((acc, { date }) =>
+      acc + (activeChild?.habits ?? []).filter((h: any) => isHabitDueOnDate(h, date)).length
+    , 0)
     const weeklyPctReal = totalScheduledWeek > 0
       ? Math.round(Math.min(100, (weeklyCompletions.length / totalScheduledWeek) * 100))
       : 0
