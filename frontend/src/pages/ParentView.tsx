@@ -263,6 +263,7 @@ export default function ParentView() {
   const [habitsView, setHabitsView] = useState<'list' | 'parjour'>('list')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showCustomForm, setShowCustomForm] = useState(false)
   const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
   const [addingPreset, setAddingPreset] = useState<string | null>(null)
   const [selectedPreset, setSelectedPreset] = useState<typeof PRESET_HABITS[0] | null>(null)
@@ -673,55 +674,89 @@ export default function ParentView() {
       {showSuggestions && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 z-50 flex items-end"
-          onClick={() => setShowSuggestions(false)}>
+          onClick={() => { setShowSuggestions(false); setShowCustomForm(false) }}>
           <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
-            className="w-full bg-white rounded-t-3xl p-4 max-h-[80vh] flex flex-col"
+            className="w-full bg-white rounded-t-3xl p-4 max-h-[90vh] flex flex-col"
             onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <span className="font-black text-gray-800 text-base">💡 Ajouter une habitude</span>
-              <button onClick={() => setShowSuggestions(false)}
+              <div className="flex items-center gap-2">
+                {showCustomForm && (
+                  <button onClick={() => setShowCustomForm(false)}
+                    className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm">←</button>
+                )}
+                <span className="font-black text-gray-800 text-base">
+                  {showCustomForm ? '✨ Nouvelle habitude' : '💡 Ajouter une habitude'}
+                </span>
+              </div>
+              <button onClick={() => { setShowSuggestions(false); setShowCustomForm(false) }}
                 className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
             </div>
-            {/* Category filter */}
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1 flex-shrink-0">
-              <button onClick={() => setSuggestCatFilter('ALL')}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
-                Tous
-              </button>
-              {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
-                  className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
-                  {cat.emoji} {cat.label}
+
+            {showCustomForm ? (
+              /* Custom habit form */
+              <div className="overflow-y-auto flex-1 -mx-1 px-1">
+                <HabitForm
+                  childId={activeChild?.id ?? ''}
+                  onSave={() => { setShowSuggestions(false); setShowCustomForm(false); fetchChildren() }}
+                  onCancel={() => setShowCustomForm(false)}
+                />
+              </div>
+            ) : (
+              <>
+                {/* "Créer" button */}
+                <button onClick={() => setShowCustomForm(true)}
+                  className="flex items-center gap-3 w-full bg-gradient-to-r from-kids-orange to-orange-400 text-white rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md flex-shrink-0">
+                  <span className="text-xl">✏️</span>
+                  <div className="text-left">
+                    <p className="font-black">Créer une habitude personnalisée</p>
+                    <p className="text-xs opacity-80">Fréquence, jours, récurrence mensuelle…</p>
+                  </div>
+                  <span className="ml-auto text-lg">→</span>
                 </button>
-              ))}
-            </div>
-            {/* Habit list */}
-            <div className="space-y-1.5 overflow-y-auto flex-1">
-              {PRESET_HABITS
-                .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
-                .map(preset => {
-                  const cat = getCategoryInfo(preset.category)
-                  const alreadyAdded = (activeChild?.habits ?? []).some((h: any) => h.title === preset.title)
-                  return (
-                    <div key={preset.title}
-                      className={`flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 ${alreadyAdded ? 'opacity-50' : ''}`}>
-                      <span className="text-xl">{preset.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
-                        <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
-                      </div>
-                      {alreadyAdded
-                        ? <span className="text-green-400 font-bold text-lg">✓</span>
-                        : <motion.button whileTap={{ scale: 0.9 }}
-                            onClick={() => { setSelectedPreset(preset); setSelectedPresetDays(preset.daysOfWeek) }}
-                            className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow">
-                            +
-                          </motion.button>
-                      }
-                    </div>
-                  )
-                })}
-            </div>
+
+                {/* Category filter */}
+                <div className="flex gap-2 mb-3 overflow-x-auto pb-1 flex-shrink-0">
+                  <button onClick={() => setSuggestCatFilter('ALL')}
+                    className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
+                    Tous
+                  </button>
+                  {CATEGORIES.map(cat => (
+                    <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
+                      className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
+                      {cat.emoji} {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Preset habit list */}
+                <div className="space-y-1.5 overflow-y-auto flex-1">
+                  {PRESET_HABITS
+                    .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
+                    .map(preset => {
+                      const cat = getCategoryInfo(preset.category)
+                      const alreadyAdded = (activeChild?.habits ?? []).some((h: any) => h.title === preset.title)
+                      return (
+                        <div key={preset.title}
+                          className={`flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 ${alreadyAdded ? 'opacity-50' : ''}`}>
+                          <span className="text-xl">{preset.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
+                            <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
+                          </div>
+                          {alreadyAdded
+                            ? <span className="text-green-400 font-bold text-lg">✓</span>
+                            : <motion.button whileTap={{ scale: 0.9 }}
+                                onClick={() => { setSelectedPreset(preset); setSelectedPresetDays(preset.daysOfWeek) }}
+                                className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow">
+                                +
+                              </motion.button>
+                          }
+                        </div>
+                      )
+                    })}
+                </div>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}
