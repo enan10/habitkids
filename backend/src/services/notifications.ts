@@ -56,6 +56,8 @@ async function sendWebPushToUser(
 
 let fcmEnabled = false
 
+export function isFcmEnabled(): boolean { return fcmEnabled }
+
 export function initFCM() {
   const sa = process.env.FIREBASE_SERVICE_ACCOUNT
   if (!sa) {
@@ -152,6 +154,8 @@ export function startNotificationScheduler(prisma: PrismaClient) {
         },
       })
 
+      process.stdout.write(`SCHEDULER tick ${hour}:${String(minute).padStart(2, '0')} UTC — ${schedules.length} rappel(s) à envoyer\n`)
+
       for (const schedule of schedules) {
         const child = schedule.child
         const today = now.toISOString().split('T')[0]
@@ -159,15 +163,18 @@ export function startNotificationScheduler(prisma: PrismaClient) {
           where: { childId: child.id, date: today },
         })
         const total = child.habits.length
-        if (total === 0) continue
 
         const remaining = total - doneCount
         const body =
-          remaining === 0
+          total === 0
+            ? `N'oublie pas de vérifier les habitudes de ${child.name} aujourd'hui ! 💪`
+            : remaining === 0
             ? `${child.name} a tout accompli aujourd'hui ! 🏆`
             : doneCount === 0
             ? `${child.name} n'a pas encore commencé. ${total} habitude${total > 1 ? 's' : ''} à faire ! 💪`
             : `${child.name} : encore ${remaining} habitude${remaining > 1 ? 's' : ''} à faire ! ⭐`
+
+        process.stdout.write(`SCHEDULER send → child=${child.id} total=${total} done=${doneCount} label="${schedule.label}"\n`)
 
         await sendPushToUser(prisma, child.userId, {
           title: `HabitKids — ${schedule.label}`,
