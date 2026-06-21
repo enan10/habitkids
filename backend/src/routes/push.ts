@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth'
-import { getVapidPublicKey, sendPushToUser } from '../services/notifications'
+import { getVapidPublicKey, sendPushToUser, isFcmEnabled } from '../services/notifications'
 
 const subscribeSchema = z.object({
   endpoint: z.string().url(),
@@ -115,13 +115,25 @@ export default async function pushRoutes(app: FastifyInstance) {
     })
 
     auth.post('/test', async (request: any) => {
+      const fcmDevices = await app.prisma.fcmDevice.findMany({ where: { userId: request.userId } })
+      const webSubs   = await app.prisma.pushSubscription.findMany({ where: { userId: request.userId } })
+      const fcmOn     = isFcmEnabled()
+
+      process.stdout.write(
+        `PUSH TEST: fcmEnabled=${fcmOn} fcmDevices=${fcmDevices.length} webSubs=${webSubs.length} user=${request.userId}\n`
+      )
+
       await sendPushToUser(app.prisma, request.userId, {
         title: 'HabitKids 🌟',
         body: 'Les notifications fonctionnent parfaitement !',
         icon: '/icon-192.png',
         tag: 'test',
       })
-      return { success: true }
+
+      return {
+        success: true,
+        debug: { fcmEnabled: fcmOn, fcmDevices: fcmDevices.length, webSubs: webSubs.length },
+      }
     })
   })
 }

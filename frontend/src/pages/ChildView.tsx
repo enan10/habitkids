@@ -9,6 +9,7 @@ import { mergePhotos } from '../utils/childPhotos'
 interface Child {
   id: string
   name: string
+  sex?: 'GARCON' | 'FILLE'
   avatarEmoji: string
   avatarColor: string
   photoUrl?: string
@@ -36,7 +37,7 @@ export default function ChildView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
+      <div className="h-screen bg-sky-100 flex items-center justify-center">
         <motion.div className="text-6xl" animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
           ⭐
         </motion.div>
@@ -46,7 +47,7 @@ export default function ChildView() {
 
   if (children.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-kids-yellow to-kids-orange flex flex-col items-center justify-center p-6 text-center">
+      <div className="h-screen bg-gradient-to-b from-kids-yellow to-kids-orange flex flex-col items-center justify-center p-6 text-center">
         <div className="text-7xl mb-4">👨‍👩‍👧</div>
         <h2 className="text-3xl font-black text-white mb-3">Bienvenue !</h2>
         <p className="text-white/80 font-semibold mb-8 text-lg">Créez le profil de votre enfant pour commencer</p>
@@ -59,19 +60,19 @@ export default function ChildView() {
   }
 
   return (
-    <div className="min-h-screen bg-amber-50">
-      {/* Sélecteur enfant (seulement si plusieurs enfants) */}
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Child selector — only shown when there are multiple children */}
       {children.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1 max-w-md mx-auto">
+        <div className="flex-shrink-0 bg-sky-300 flex gap-2 overflow-x-auto px-4 pt-2 pb-1">
           {children.map(child => (
             <button key={child.id} onClick={() => setActiveChild(child.id)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-bold text-xs transition-all whitespace-nowrap flex-shrink-0 ${
                 activeChildId === child.id
-                  ? 'bg-kids-orange text-white shadow-md'
-                  : 'bg-white text-gray-500 border border-gray-200'
+                  ? 'bg-white text-kids-orange shadow-md'
+                  : 'bg-white/50 text-gray-600'
               }`}>
               {child.photoUrl
-                ? <img src={child.photoUrl} className="w-5 h-5 rounded-full object-cover" />
+                ? <img src={child.photoUrl} className="w-5 h-5 rounded-full object-cover" alt={child.name} />
                 : <span>{child.avatarEmoji}</span>
               }
               {child.name}
@@ -80,11 +81,14 @@ export default function ChildView() {
         </div>
       )}
 
+      {/* Dashboard takes remaining height */}
       {activeChild && (
-        <Dashboard
-          child={activeChild}
-          onChildUpdate={updated => setChildren(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))}
-        />
+        <div className="flex-1 overflow-hidden">
+          <Dashboard
+            child={activeChild}
+            onChildUpdate={updated => setChildren(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))}
+          />
+        </div>
       )}
     </div>
   )

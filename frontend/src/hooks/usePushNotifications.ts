@@ -36,10 +36,58 @@ export function usePushNotifications() {
 
   // ── Native (Android APK via FCM) ──────────────────────────────────────────
 
+  // Extracted so it can be called from both initNative and subscribeNative.
+  // unsubscribeNative calls removeAllListeners() which wipes these — they must
+  // be re-added before any subsequent register() call or the token is lost.
+  const addNativeListeners = async (PushNotifications: any) => {
+    listenersAdded.current = true
+
+    await PushNotifications.addListener('registration', async ({ value: token }: { value: string }) => {
+      if (localStorage.getItem(FCM_KEY) === 'false') return
+      localStorage.setItem(FCM_TOKEN_KEY, token)
+      localStorage.setItem(FCM_KEY, 'true')
+      setIsSubscribed(true)
+      setPermission('granted')
+      api.post('/push/fcm-register', { token }).catch(() => {})
+    })
+
+    await PushNotifications.addListener('registrationError', (err: any) => {
+      console.error('FCM registration error:', JSON.stringify(err))
+      setError('Échec enregistrement FCM: ' + (err?.error ?? 'inconnu'))
+    })
+
+    await PushNotifications.addListener('pushNotificationReceived', async (notification: any) => {
+      // App is in foreground — show via LocalNotifications so it appears in the shade
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+        await LocalNotifications.requestPermissions()
+        await LocalNotifications.schedule({
+          notifications: [{
+            id: Date.now(),
+            title: notification.title ?? 'HabitKids',
+            body: notification.body ?? '',
+            channelId: 'habitkids_reminders',
+          }],
+        })
+      } catch {}
+    })
+  }
+
   const initNative = async () => {
     const { PushNotifications } = await import('@capacitor/push-notifications')
-    const result = await PushNotifications.checkPermissions()
 
+    try {
+      await PushNotifications.createChannel({
+        id: 'habitkids_reminders',
+        name: 'Rappels HabitKids',
+        description: 'Rappels pour les habitudes quotidiennes',
+        importance: 5,
+        visibility: 1,
+        vibration: true,
+      })
+    } catch {}
+
+    const result = await PushNotifications.checkPermissions()
     const alreadyGranted = result.receive === 'granted'
     const notOptedOut = localStorage.getItem(FCM_KEY) !== 'false'
 
@@ -48,28 +96,10 @@ export function usePushNotifications() {
       if (notOptedOut) setIsSubscribed(true)
     }
 
-    // Set up listeners here so they survive an Android Activity recreation
     if (!listenersAdded.current) {
-      listenersAdded.current = true
-
-      await PushNotifications.addListener('registration', async ({ value: token }) => {
-        // Ignore if user explicitly unsubscribed
-        if (localStorage.getItem(FCM_KEY) === 'false') return
-        localStorage.setItem(FCM_TOKEN_KEY, token)
-        localStorage.setItem(FCM_KEY, 'true')
-        setIsSubscribed(true)
-        setPermission('granted')
-        // Best-effort server registration — don't block on failure
-        api.post('/push/fcm-register', { token }).catch(() => {})
-      })
-
-      await PushNotifications.addListener('registrationError', () => {})
-
-
-      await PushNotifications.addListener('pushNotificationReceived', () => {})
+      await addNativeListeners(PushNotifications)
     }
 
-    // Auto-register FCM token on startup if permission already granted
     if (alreadyGranted && notOptedOut) {
       await PushNotifications.register()
     }
@@ -78,8 +108,6 @@ export function usePushNotifications() {
   const subscribeNative = async () => {
     const { PushNotifications } = await import('@capacitor/push-notifications')
 
-    // This call may trigger the Android permission dialog which can destroy/recreate
-    // the Activity. We optimistically update state before calling requestPermissions.
     const result = await PushNotifications.requestPermissions()
     if (result.receive !== 'granted') {
       setPermission('denied')
@@ -88,11 +116,14 @@ export function usePushNotifications() {
     }
 
     setPermission('granted')
-    // Optimistically mark subscribed — the registration listener will confirm with token
+
+    // Re-add listeners if unsubscribeNative removed them via removeAllListeners()
+    if (!listenersAdded.current) {
+      await addNativeListeners(PushNotifications)
+    }
+
     localStorage.setItem(FCM_KEY, 'true')
     setIsSubscribed(true)
-
-    // Trigger FCM token request — handled by the listener set up in initNative
     await PushNotifications.register()
   }
 
@@ -100,14 +131,12 @@ export function usePushNotifications() {
     const { PushNotifications } = await import('@capacitor/push-notifications')
     const token = localStorage.getItem(FCM_TOKEN_KEY)
 
-    // Update local state immediately — don't wait for server response
     localStorage.setItem(FCM_KEY, 'false')
     localStorage.removeItem(FCM_TOKEN_KEY)
     setIsSubscribed(false)
     await PushNotifications.removeAllListeners()
     listenersAdded.current = false
 
-    // Best-effort server unregistration
     api.delete('/push/fcm-register', { data: token ? { token } : {} }).catch(() => {})
   }
 
@@ -179,9 +208,43 @@ export function usePushNotifications() {
     }
   }
 
+  const [testStatus, setTestStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
   const sendTest = async () => {
-    try { await api.post('/push/test') } catch {}
+    setTestStatus('sending')
+    setError('')
+    try {
+      if (IS_NATIVE) {
+        const { PushNotifications } = await import('@capacitor/push-notifications')
+        // Re-add listeners if removed, and ensure FCM_KEY is true so registration saves the token
+        if (!listenersAdded.current) {
+          await addNativeListeners(PushNotifications)
+        }
+        localStorage.setItem(FCM_KEY, 'true')
+        await PushNotifications.register()
+        await new Promise(r => setTimeout(r, 2500))
+      }
+      const res = await api.post('/push/test')
+      const dbg = res.data?.debug
+      if (dbg) {
+        const info = `FCM:${dbg.fcmEnabled ? '✅' : '❌'} Appareils:${dbg.fcmDevices} WebPush:${dbg.webSubs}`
+        if (!dbg.fcmEnabled || (dbg.fcmDevices === 0 && dbg.webSubs === 0)) {
+          setError('⚠️ ' + info + ' — aucun appareil enregistré')
+          setTestStatus('error')
+        } else {
+          setTestStatus('sent')
+          setError('ℹ️ ' + info)
+        }
+      } else {
+        setTestStatus('sent')
+      }
+      setTimeout(() => { setTestStatus('idle'); setError('') }, 6000)
+    } catch (err: any) {
+      setTestStatus('error')
+      setError('Erreur: ' + (err?.response?.data?.error ?? err?.message ?? 'inconnu'))
+      setTimeout(() => setTestStatus('idle'), 4000)
+    }
   }
 
-  return { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest }
+  return { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest, testStatus }
 }

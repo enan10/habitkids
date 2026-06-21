@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, Reorder, useDragControls, AnimatePresence } from 'framer-motion'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
-import HabitForm, { CATEGORIES } from '../components/parent/HabitForm'
+import HabitForm, { CATEGORIES, HabitDefaults } from '../components/parent/HabitForm'
 import StatsView from '../components/parent/StatsView'
 import PhotoPicker from '../components/parent/PhotoPicker'
 import { mergePhotos, setChildPhoto, removeChildPhoto } from '../utils/childPhotos'
@@ -264,17 +264,15 @@ export default function ParentView() {
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
+  const [presetDefaults, setPresetDefaults] = useState<HabitDefaults | null>(null)
   const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
-  const [addingPreset, setAddingPreset] = useState<string | null>(null)
-  const [selectedPreset, setSelectedPreset] = useState<typeof PRESET_HABITS[0] | null>(null)
-  const [selectedPresetDays, setSelectedPresetDays] = useState<number[]>([])
   const [addForDay, setAddForDay] = useState<number | null>(null)
-  const [showHabitForm] = useState(false)
 
   // Rewards
   const [rewards, setRewards] = useState<Reward[]>([])
-  const [rewardForm, setRewardForm] = useState({ title: '', emoji: '🎁', pointCost: 50 })
-  const [showRewardForm, setShowRewardForm] = useState(false)
+  const [showRewardPanel, setShowRewardPanel] = useState(false)
+  const [rewardPanelMode, setRewardPanelMode] = useState<'presets' | 'form'>('presets')
+  const [rewardForm, setRewardForm] = useState({ title: '', emoji: '🎁', pointCost: '50' })
 
   // Weekly data
   const [weeklyCompletions, setWeeklyCompletions] = useState<any[]>([])
@@ -310,8 +308,15 @@ export default function ParentView() {
     const res = await api.get('/children')
     const merged = mergePhotos(res.data as Child[])
     setChildren(merged)
-    if (!activeId && merged.length > 0) setActiveId(merged[0].id)
-  }, [activeId])
+    // Functional update reads the live activeId, not the stale closure value.
+    // Falls back to first child if active child was deleted or none is selected.
+    setActiveId(prev => {
+      if (!prev || !merged.find(c => c.id === prev)) {
+        return merged.length > 0 ? merged[0].id : null
+      }
+      return prev
+    })
+  }, [])
 
   const fetchRewards = useCallback(async (childId: string) => {
     const res = await api.get(`/rewards/${childId}`)
@@ -436,7 +441,6 @@ export default function ParentView() {
     await api.delete(`/children/${childId}`)
     removeChildPhoto(childId)
     setConfirmDeleteId(null)
-    if (activeId === childId) setActiveId(null)
     fetchChildren()
   }
 
@@ -455,34 +459,47 @@ export default function ParentView() {
     fetchChildren()
   }
 
-  const addPresetHabit = async (preset: typeof PRESET_HABITS[0], overrideDays?: number[]) => {
-    if (!activeId) return
-    setAddingPreset(preset.title)
+  const openPresetForm = (preset: typeof PRESET_HABITS[0]) => {
+    const days = addForDay !== null ? [addForDay] : preset.daysOfWeek
+    setPresetDefaults({
+      title:      preset.title,
+      emoji:      preset.emoji,
+      color:      preset.color,
+      category:   preset.category,
+      pointValue: preset.pointValue,
+      daysOfWeek: days,
+      frequency:  days.length === 7 ? 'DAILY' : 'WEEKLY',
+    })
+    setShowCustomForm(true)
+  }
+
+  const closeSuggestions = () => {
+    setShowSuggestions(false)
+    setShowCustomForm(false)
+    setPresetDefaults(null)
+    setAddForDay(null)
+  }
+
+  const addReward = async () => {
+    if (!rewardForm.title.trim()) return
+    const pointCost = Math.max(1, parseInt(rewardForm.pointCost) || 50)
     try {
-      const daysOfWeek = overrideDays ?? (addForDay !== null ? [addForDay] : preset.daysOfWeek)
-      const frequency = daysOfWeek.length === 7 ? 'DAILY' : 'WEEKLY'
-      await api.post('/habits', { ...preset, daysOfWeek, frequency, childId: activeId })
-      fetchChildren()
-      fetchWeeklyData(activeId)
+      await api.post('/rewards', { title: rewardForm.title, emoji: rewardForm.emoji, pointCost, childId: activeId, type: 'PHYSICAL' })
+      setRewardForm({ title: '', emoji: '🎁', pointCost: '50' })
+      setShowRewardPanel(false)
+      setRewardPanelMode('presets')
+      if (activeId) fetchRewards(activeId)
     } catch (err: any) {
-      if (err.response?.data?.upgrade || err.response?.data?.error?.includes('Maximum')) setShowUpgrade(true)
+      if (err.response?.data?.upgrade) { setShowRewardPanel(false); setShowUpgrade(true) }
       else alert(err.response?.data?.error || 'Erreur')
-    } finally {
-      setAddingPreset(null)
     }
   }
 
-  const addReward = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const deleteReward = async (rewardId: string) => {
     try {
-      await api.post('/rewards', { ...rewardForm, childId: activeId, type: 'PHYSICAL' })
-      setRewardForm({ title: '', emoji: '🎁', pointCost: 50 })
-      setShowRewardForm(false)
+      await api.delete(`/rewards/${rewardId}`)
       if (activeId) fetchRewards(activeId)
-    } catch (err: any) {
-      if (err.response?.data?.upgrade) { setShowRewardForm(false); setShowUpgrade(true) }
-      else alert(err.response?.data?.error || 'Erreur')
-    }
+    } catch {}
   }
 
   const openEditChildProfile = (child: Child) => {
@@ -543,168 +560,46 @@ export default function ParentView() {
     return 'Bonsoir'
   }
 
-  // ── Preset day configurator modal ───────────────────────────────────────────
-  const PresetDayModal = () => {
-    if (!selectedPreset) return null
-    const cat = getCategoryInfo(selectedPreset.category)
-    const freqPresets = [
-      { label: 'Tous les jours',  icon: '🔄', days: [1, 2, 3, 4, 5, 6, 0] as number[] | null },
-      { label: 'Jours scolaires', icon: '📚', days: [1, 2, 3, 4, 5]        as number[] | null },
-      { label: 'Week-end',        icon: '🎉', days: [6, 0]                  as number[] | null },
-      { label: 'Personnalisé',    icon: '✏️', days: null                                       },
-    ]
-    const toggleDay = (day: number) =>
-      setSelectedPresetDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
-
-    const dayLabel = () => {
-      const n = selectedPresetDays.length
-      if (n === 0) return 'Aucun jour'
-      if (n === 7) return 'Tous les jours'
-      const names = ['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa']
-      return selectedPresetDays.slice().sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map(d => names[d]).join(' · ')
-    }
-
-    const handleAdd = async () => {
-      if (selectedPresetDays.length === 0) return
-      await addPresetHabit(selectedPreset, selectedPresetDays)
-      setSelectedPreset(null)
-    }
-
-    return (
-      <AnimatePresence>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 z-[60] flex items-end"
-          onClick={() => setSelectedPreset(null)}>
-          <motion.div initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
-            className="w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}>
-
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black text-gray-800 text-base">📅 Choisir les jours</h3>
-              <button onClick={() => setSelectedPreset(null)}
-                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
-            </div>
-
-            {/* Habit info */}
-            <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 mb-5">
-              <span className="text-3xl">{selectedPreset.emoji}</span>
-              <div>
-                <p className="font-black text-gray-800">{selectedPreset.title}</p>
-                <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {selectedPreset.pointValue} pts</p>
-              </div>
-            </div>
-
-            {/* Frequency presets */}
-            <p className="text-sm font-bold text-gray-600 mb-2">Fréquence :</p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {freqPresets.map(fp => {
-                const matched = fp.days !== null
-                  && fp.days.length === selectedPresetDays.length
-                  && fp.days.every(d => selectedPresetDays.includes(d))
-                const customActive = fp.days === null
-                  && selectedPresetDays.length > 0
-                  && !freqPresets.filter(p => p.days !== null).some(p =>
-                      p.days!.length === selectedPresetDays.length && p.days!.every(d => selectedPresetDays.includes(d))
-                    )
-                const active = matched || customActive
-                return (
-                  <button key={fp.label} type="button"
-                    onClick={() => setSelectedPresetDays(fp.days ?? [])}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${
-                      active ? 'bg-kids-orange text-white border-kids-orange shadow-sm' : 'bg-white text-gray-500 border-gray-200'
-                    }`}>
-                    <span className="text-base">{fp.icon}</span>
-                    <span>{fp.label}</span>
-                    {matched && fp.days && (
-                      <span className="ml-auto text-xs opacity-75">{fp.days.length}/7</span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Visual week calendar */}
-            <p className="text-xs text-gray-400 font-semibold mb-2">Jours actifs :</p>
-            <div className="flex gap-1.5 mb-3">
-              {WEEK_DAYS.map(({ short, label, day }) => {
-                const selected = selectedPresetDays.includes(day)
-                return (
-                  <button key={day} type="button" onClick={() => toggleDay(day)} title={label}
-                    className={`flex-1 flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 transition-all ${
-                      selected ? 'bg-kids-orange border-kids-orange text-white shadow-sm' : 'bg-white border-gray-200 text-gray-400'
-                    }`}>
-                    <span className="text-[11px] font-black leading-none">{short}</span>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                      selected ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-300'
-                    }`}>
-                      {selected ? '✓' : '·'}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Summary */}
-            <div className="flex justify-center mb-5">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
-                selectedPresetDays.length === 0 ? 'bg-red-50 text-red-400' : 'bg-orange-50 text-kids-orange'
-              }`}>
-                {selectedPresetDays.length === 0 ? '⚠️ Aucun jour sélectionné' : `📅 ${dayLabel()}`}
-              </span>
-            </div>
-
-            {/* Add button */}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleAdd}
-              disabled={selectedPresetDays.length === 0 || addingPreset === selectedPreset.title}
-              className="w-full bg-kids-teal text-white font-black py-3.5 rounded-2xl text-base shadow-md disabled:opacity-60">
-              {addingPreset === selectedPreset.title ? '⏳ Ajout en cours...' : '✅ Ajouter cette habitude'}
-            </motion.button>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-    )
-  }
-
   // ── Suggestions panel (modal overlay) ──────────────────────────────────────
   const SuggestionsPanel = () => (
     <AnimatePresence>
       {showSuggestions && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 z-50 flex items-end"
-          onClick={() => { setShowSuggestions(false); setShowCustomForm(false) }}>
+          onClick={closeSuggestions}>
           <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
             className="w-full bg-white rounded-t-3xl p-4 max-h-[90vh] flex flex-col"
             onClick={e => e.stopPropagation()}>
+
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 {showCustomForm && (
-                  <button onClick={() => setShowCustomForm(false)}
+                  <button onClick={() => { setShowCustomForm(false); setPresetDefaults(null) }}
                     className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm">←</button>
                 )}
                 <span className="font-black text-gray-800 text-base">
-                  {showCustomForm ? '✨ Nouvelle habitude' : '💡 Ajouter une habitude'}
+                  {showCustomForm
+                    ? presetDefaults?.title ? `✏️ ${presetDefaults.title}` : '✨ Nouvelle habitude'
+                    : '💡 Ajouter une habitude'}
                 </span>
               </div>
-              <button onClick={() => { setShowSuggestions(false); setShowCustomForm(false) }}
+              <button onClick={closeSuggestions}
                 className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
             </div>
 
             {showCustomForm ? (
-              /* Custom habit form */
               <div className="overflow-y-auto flex-1 -mx-1 px-1">
                 <HabitForm
                   childId={activeChild?.id ?? ''}
-                  onSave={() => { setShowSuggestions(false); setShowCustomForm(false); fetchChildren() }}
-                  onCancel={() => setShowCustomForm(false)}
+                  defaultValues={presetDefaults ?? undefined}
+                  onSave={() => { closeSuggestions(); fetchChildren() }}
+                  onCancel={() => { setShowCustomForm(false); setPresetDefaults(null) }}
                 />
               </div>
             ) : (
               <>
                 {/* "Créer" button */}
-                <button onClick={() => setShowCustomForm(true)}
+                <button onClick={() => { setPresetDefaults(null); setShowCustomForm(true) }}
                   className="flex items-center gap-3 w-full bg-gradient-to-r from-kids-orange to-orange-400 text-white rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md flex-shrink-0">
                   <span className="text-xl">✏️</span>
                   <div className="text-left">
@@ -746,7 +641,7 @@ export default function ParentView() {
                           {alreadyAdded
                             ? <span className="text-green-400 font-bold text-lg">✓</span>
                             : <motion.button whileTap={{ scale: 0.9 }}
-                                onClick={() => { setSelectedPreset(preset); setSelectedPresetDays(preset.daysOfWeek) }}
+                                onClick={() => openPresetForm(preset)}
                                 className="w-8 h-8 rounded-full bg-kids-teal text-white font-black text-lg flex items-center justify-center shadow">
                                 +
                               </motion.button>
@@ -1130,56 +1025,183 @@ export default function ParentView() {
     )
   }
 
+  const PRESET_REWARDS = [
+    { emoji: '🍽️', title: 'Choisir le dîner du soir',       pointCost: 50  },
+    { emoji: '🌳', title: 'Sortie au parc',                   pointCost: 80  },
+    { emoji: '❤️', title: 'Temps spécial avec papa/maman',   pointCost: 100 },
+    { emoji: '🎬', title: 'Film familial',                    pointCost: 60  },
+    { emoji: '🎮', title: 'Un jeu ensemble',                  pointCost: 40  },
+    { emoji: '🎁', title: 'Une petite surprise',              pointCost: 30  },
+    { emoji: '🧸', title: 'Acheter un jouet',                 pointCost: 150 },
+  ]
+
   // ── Récompenses tab ──────────────────────────────────────────────────────────
   const RecompensesTab = () => {
     if (!activeChild) return null
+
+    const openPreset = (preset: typeof PRESET_REWARDS[0]) => {
+      setRewardForm({ title: preset.title, emoji: preset.emoji, pointCost: String(preset.pointCost) })
+      setRewardPanelMode('form')
+    }
+
+    const openCustom = () => {
+      setRewardForm({ title: '', emoji: '🎁', pointCost: '50' })
+      setRewardPanelMode('form')
+    }
+
     return (
-      <div>
+      <>
+        {/* ── Panel bottom sheet ── */}
+        <AnimatePresence>
+          {showRewardPanel && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50 flex items-end"
+              onClick={() => { setShowRewardPanel(false); setRewardPanelMode('presets') }}>
+              <motion.div initial={{ y: 300 }} animate={{ y: 0 }} exit={{ y: 300 }}
+                className="w-full bg-white rounded-t-3xl p-4 max-h-[85vh] flex flex-col"
+                onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    {rewardPanelMode === 'form' && (
+                      <button onClick={() => setRewardPanelMode('presets')}
+                        className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm">←</button>
+                    )}
+                    <span className="font-black text-gray-800 text-base">
+                      {rewardPanelMode === 'form' ? (rewardForm.title ? `✏️ ${rewardForm.title}` : '✨ Nouvelle récompense') : '🎁 Ajouter une récompense'}
+                    </span>
+                  </div>
+                  <button onClick={() => { setShowRewardPanel(false); setRewardPanelMode('presets') }}
+                    className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+                </div>
+
+                {rewardPanelMode === 'presets' ? (
+                  <div className="overflow-y-auto flex-1 space-y-2">
+                    {/* Custom button */}
+                    <button onClick={openCustom}
+                      className="flex items-center gap-3 w-full bg-gradient-to-r from-kids-orange to-orange-400 text-white rounded-2xl px-4 py-3 font-bold text-sm shadow-md">
+                      <span className="text-xl">✏️</span>
+                      <div className="text-left">
+                        <p className="font-black">Créer une récompense personnalisée</p>
+                        <p className="text-xs opacity-80">Choisir l'emoji, le nom et les points</p>
+                      </div>
+                      <span className="ml-auto text-lg">→</span>
+                    </button>
+
+                    {/* Preset list */}
+                    <div className="divide-y divide-gray-100 border-2 border-gray-100 rounded-2xl overflow-hidden">
+                      {PRESET_REWARDS.map(preset => {
+                        const alreadyAdded = rewards.some(r => r.title === preset.title)
+                        return (
+                          <div key={preset.title} className={`flex items-center gap-3 px-4 py-3 bg-white ${alreadyAdded ? 'opacity-50' : ''}`}>
+                            <span className="text-2xl flex-shrink-0">{preset.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-800 text-sm">{preset.title}</p>
+                              <p className="text-xs text-gray-400">⭐ {preset.pointCost} points</p>
+                            </div>
+                            {alreadyAdded
+                              ? <span className="text-green-400 font-bold text-lg flex-shrink-0">✓</span>
+                              : <motion.button whileTap={{ scale: 0.9 }} onClick={() => openPreset(preset)}
+                                  className="flex-shrink-0 flex items-center gap-1 bg-kids-teal text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow">
+                                  ✏️ Perso.
+                                </motion.button>
+                            }
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* Reward form */
+                  <div className="space-y-4 overflow-y-auto flex-1">
+                    {/* Emoji + Titre */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={rewardForm.emoji}
+                        onChange={e => setRewardForm(f => ({ ...f, emoji: e.target.value }))}
+                        className="w-16 p-3 border-2 border-gray-200 rounded-xl text-center text-2xl focus:border-kids-orange focus:outline-none"
+                        maxLength={2}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Nom de la récompense"
+                        value={rewardForm.title}
+                        onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))}
+                        className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Points */}
+                    <div>
+                      <label className="text-sm font-bold text-gray-600 mb-2 block">⭐ Points nécessaires</label>
+                      <div className="flex gap-2 flex-wrap mb-2">
+                        {[20, 30, 50, 80, 100, 150, 200].map(v => (
+                          <button key={v} type="button"
+                            onClick={() => setRewardForm(f => ({ ...f, pointCost: String(v) }))}
+                            className={`px-3 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                              rewardForm.pointCost === String(v)
+                                ? 'bg-kids-orange text-white border-kids-orange'
+                                : 'bg-white text-gray-500 border-gray-200'
+                            }`}>
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Autre valeur…"
+                        value={rewardForm.pointCost}
+                        onFocus={e => e.target.select()}
+                        onChange={e => setRewardForm(f => ({ ...f, pointCost: e.target.value.replace(/\D/g, '') }))}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
+                      />
+                    </div>
+
+                    <motion.button whileTap={{ scale: 0.97 }} type="button"
+                      onClick={addReward}
+                      disabled={!rewardForm.title.trim()}
+                      className="w-full bg-kids-teal text-white font-black py-3.5 rounded-2xl text-base shadow-md disabled:opacity-50">
+                      ✅ Ajouter cette récompense
+                    </motion.button>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Reward list ── */}
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-black text-gray-700">Récompenses</h3>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowRewardForm(true)}
+          <motion.button whileTap={{ scale: 0.95 }}
+            onClick={() => { setRewardPanelMode('presets'); setShowRewardPanel(true) }}
             className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
             + Ajouter
           </motion.button>
         </div>
-        {showRewardForm && (
-          <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-            onSubmit={addReward} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
-            <div className="flex gap-2">
-              <input type="text" placeholder="🎁" value={rewardForm.emoji}
-                onChange={e => setRewardForm(f => ({ ...f, emoji: e.target.value }))}
-                className="w-16 p-3 border-2 border-gray-200 rounded-xl text-center text-xl" />
-              <input type="text" placeholder="Nom de la récompense" value={rewardForm.title}
-                onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))}
-                className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold" required />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="font-semibold text-gray-600 text-sm">⭐ Points :</label>
-              <input type="number" value={rewardForm.pointCost} min={1}
-                onChange={e => setRewardForm(f => ({ ...f, pointCost: Number(e.target.value) }))}
-                className="w-24 p-3 border-2 border-gray-200 rounded-xl font-semibold" />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">✓ Sauvegarder</button>
-              <button type="button" onClick={() => setShowRewardForm(false)} className="px-4 bg-gray-100 text-gray-500 font-bold rounded-xl">✕</button>
-            </div>
-          </motion.form>
-        )}
+
         <div className="space-y-2">
           {rewards.map(r => (
             <div key={r.id} className={`rounded-2xl p-3 shadow-sm flex items-center gap-3 ${r.isUnlocked ? 'bg-green-50 border-2 border-green-200' : 'bg-white'}`}>
               <span className="text-2xl">{r.emoji}</span>
-              <div className="flex-1">
-                <p className="font-bold text-gray-800">{r.title}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-800 truncate">{r.title}</p>
                 <p className="text-sm text-gray-500">⭐ {r.pointCost} points</p>
               </div>
               {r.isUnlocked
-                ? <span className="text-green-500 font-bold text-sm">✅ Débloqué</span>
-                : <button onClick={() => unlockReward(r.id)}
-                    disabled={activeChild.xp < r.pointCost}
-                    className="bg-kids-orange text-white font-bold px-3 py-1 rounded-xl text-sm disabled:opacity-40">
-                    Débloquer
-                  </button>
+                ? <span className="text-green-500 font-bold text-sm flex-shrink-0">✅ Débloqué</span>
+                : <>
+                    <button onClick={() => unlockReward(r.id)}
+                      disabled={activeChild.xp < r.pointCost}
+                      className="bg-kids-orange text-white font-bold px-3 py-1 rounded-xl text-sm disabled:opacity-40 flex-shrink-0">
+                      Débloquer
+                    </button>
+                    <button onClick={() => deleteReward(r.id)}
+                      className="text-red-300 hover:text-red-500 flex-shrink-0 p-1">🗑️</button>
+                  </>
               }
             </div>
           ))}
@@ -1187,10 +1209,11 @@ export default function ParentView() {
             <div className="text-center py-8 text-gray-400">
               <p className="text-4xl mb-2">🎁</p>
               <p className="font-semibold">Aucune récompense</p>
+              <p className="text-sm mt-1">Ajoutez des récompenses pour motiver votre enfant !</p>
             </div>
           )}
         </div>
-      </div>
+      </>
     )
   }
 
@@ -1251,7 +1274,6 @@ export default function ParentView() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
-      <PresetDayModal />
       <SuggestionsPanel />
 
       {/* Hamburger panel */}
@@ -1481,13 +1503,13 @@ export default function ParentView() {
           <>
             <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowNotifPanel(false)} />
             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
-              className="fixed top-16 left-4 right-4 max-w-md mx-auto bg-white rounded-2xl shadow-2xl z-50 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              className="fixed top-16 left-4 right-4 max-w-md mx-auto bg-white rounded-2xl shadow-2xl z-50 flex flex-col" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
                 <span className="font-black text-gray-800">🔔 Rappels</span>
                 <button onClick={() => setShowNotifPanel(false)}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
               </div>
-              <div className="p-4">
+              <div className="p-4 overflow-y-auto flex-1">
                 <NotificationSettings childId={activeChild.id} />
               </div>
             </motion.div>

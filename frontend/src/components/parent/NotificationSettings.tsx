@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/client'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
@@ -34,13 +34,14 @@ function utcToLocal(utcH: number, utcM: number) {
 }
 
 export default function NotificationSettings({ childId }: { childId: string }) {
-  const { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest } =
+  const { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest, testStatus } =
     usePushNotifications()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ hour: 8, minute: 0, label: 'Rappel habitudes' })
+  const [form, setForm] = useState({ hour: '8', minute: '00', label: 'Rappel habitudes' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
 
   const fetchSchedules = async () => {
     try {
@@ -66,12 +67,15 @@ export default function NotificationSettings({ childId }: { childId: string }) {
     }
   }
 
-  const addSchedule = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const addSchedule = async () => {
+    // Dismiss keyboard before saving
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     setFormError('')
     setSaving(true)
+    const hourNum  = Math.max(0, Math.min(23, parseInt(form.hour)  || 0))
+    const minuteNum = Math.max(0, Math.min(59, parseInt(form.minute) || 0))
     try {
-      const utc = localToUtc(Number(form.hour), Number(form.minute))
+      const utc = localToUtc(hourNum, minuteNum)
       await api.post('/push/schedules', {
         hour: utc.hour,
         minute: utc.minute,
@@ -79,6 +83,7 @@ export default function NotificationSettings({ childId }: { childId: string }) {
         childId,
       })
       setShowForm(false)
+      setForm({ hour: '8', minute: '00', label: 'Rappel habitudes' })
       await fetchSchedules()
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Erreur lors de l\'enregistrement'
@@ -149,12 +154,18 @@ export default function NotificationSettings({ childId }: { childId: string }) {
         )}
 
         {isSubscribed && (
-          <button
-            onClick={sendTest}
-            className="mt-3 text-xs text-kids-blue font-black underline decoration-dotted"
-          >
-            📨 Envoyer une notification test
-          </button>
+          <div className="mt-3">
+            <button
+              onClick={sendTest}
+              disabled={testStatus === 'sending'}
+              className="text-xs text-kids-blue font-black underline decoration-dotted disabled:opacity-50"
+            >
+              {testStatus === 'sending' ? '⏳ Envoi en cours...'
+                : testStatus === 'sent'    ? '✅ Envoyée ! Vérifiez vos notifications'
+                : testStatus === 'error'   ? '❌ Échec (voir ci-dessous)'
+                : '📨 Envoyer une notification test'}
+            </button>
+          </div>
         )}
       </div>
 
@@ -198,19 +209,26 @@ export default function NotificationSettings({ childId }: { childId: string }) {
 
           {/* Custom form */}
           {showForm && (
-            <motion.form
+            <motion.div
+              ref={formRef}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              onSubmit={addSchedule}
-              className="bg-white rounded-2xl p-4 shadow-md border-2 border-kids-orange/30 space-y-3"
+              className="bg-white rounded-2xl p-4 shadow-md border-2 border-kids-orange/30 space-y-3 pb-8"
             >
               <p className="font-black text-gray-700">Heure personnalisée</p>
               <div className="flex items-center gap-3">
                 <div className="text-center">
                   <label className="text-xs font-bold text-gray-500 block mb-1">HH</label>
                   <input
-                    type="number" min={0} max={23} value={form.hour}
-                    onChange={e => setForm(f => ({ ...f, hour: Number(e.target.value) }))}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="8"
+                    value={form.hour}
+                    onFocus={e => e.target.select()}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                      setForm(f => ({ ...f, hour: v }))
+                    }}
                     className="w-16 p-2 border-2 border-gray-200 rounded-xl font-black text-xl text-center focus:border-kids-orange focus:outline-none"
                   />
                 </div>
@@ -218,8 +236,15 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 <div className="text-center">
                   <label className="text-xs font-bold text-gray-500 block mb-1">MM</label>
                   <input
-                    type="number" min={0} max={59} step={5} value={form.minute}
-                    onChange={e => setForm(f => ({ ...f, minute: Number(e.target.value) }))}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="00"
+                    value={form.minute}
+                    onFocus={e => e.target.select()}
+                    onChange={e => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 2)
+                      setForm(f => ({ ...f, minute: v }))
+                    }}
                     className="w-16 p-2 border-2 border-gray-200 rounded-xl font-black text-xl text-center focus:border-kids-orange focus:outline-none"
                   />
                 </div>
@@ -239,13 +264,14 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 </motion.p>
               )}
               <button
-                type="submit"
+                type="button"
+                onClick={addSchedule}
                 disabled={saving}
                 className="w-full bg-kids-teal text-white font-black py-3 rounded-xl disabled:opacity-50"
               >
                 {saving ? '⏳ Enregistrement...' : '✅ Ajouter ce rappel'}
               </button>
-            </motion.form>
+            </motion.div>
           )}
 
           {/* Schedule list */}

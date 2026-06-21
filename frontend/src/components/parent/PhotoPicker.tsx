@@ -28,7 +28,7 @@ async function pickNative(): Promise<string | null> {
   try {
     const image = await Camera.getPhoto({
       quality: 80,
-      allowEditing: true,
+      allowEditing: false,
       resultType: CameraResultType.DataUrl,
       source: CameraSource.Photos,
     })

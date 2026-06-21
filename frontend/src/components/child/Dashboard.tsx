@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import HabitCard from './HabitCard'
 import CelebrationModal from './CelebrationModal'
-import BadgesSection from './BadgesSection'
 import BadgeEarnedModal from './BadgeEarnedModal'
 import { useHabits } from '../../hooks/useHabits'
 import { playComplete, playPerfectDay, playUncomplete } from '../../utils/sounds'
@@ -11,12 +9,10 @@ import { launchConfetti } from '../../utils/confetti'
 import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
 
-const LEVEL_XP    = [0, 100, 300, 600, 1000, 1500]
-const LEVEL_NAMES = ['', 'Petit explorateur', 'Apprenti champion', 'Héros du quotidien', 'Super champion', 'Légende']
-
 interface Child {
   id: string
   name: string
+  sex?: 'GARCON' | 'FILLE'
   avatarEmoji: string
   avatarColor: string
   photoUrl?: string
@@ -47,7 +43,9 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
   const [newBadges, setNewBadges] = useState<Badge[]>([])
   const [todayPoints, setTodayPoints] = useState(0)
   const [badgesKey, setBadgesKey] = useState(0)
+  const [rewardsCount, setRewardsCount] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  const firstLoad = useRef(true)
 
   const refreshChildData = useCallback(() => {
     api.get(`/completions/today/${child.id}`).then(res => {
@@ -60,6 +58,9 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
       setChildData(updated)
       onChildUpdate(updated)
     })
+    api.get(`/rewards/${child.id}`).then(res => {
+      setRewardsCount((res.data as any[]).filter((r: any) => r.isUnlocked).length)
+    }).catch(() => {})
   }, [child.id])
 
   useEffect(() => { refreshChildData() }, [child.id])
@@ -88,151 +89,145 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
 
   const completedCount = habits.filter(h => isCompleted(h.id)).length
 
-  // XP bar
-  const curXP  = LEVEL_XP[childData.level - 1] ?? 0
-  const nextXP = LEVEL_XP[childData.level] ?? LEVEL_XP[LEVEL_XP.length - 1]
-  const xpPct  = Math.min(((childData.xp - curXP) / (nextXP - curXP)) * 100, 100)
-  const levelName = LEVEL_NAMES[childData.level] ?? 'Légende'
-
   const motivMessage = () => {
     if (completedCount === habits.length && habits.length > 0) return '🏆 Journée parfaite !'
     if (completedCount > habits.length / 2) return 'Tu progresses super bien ! ⭐'
-    return 'Continue comme ça ! 💪'
+    return 'Tu fais un super travail ! 💪'
   }
 
-  if (loading) {
+  // Only block render on very first load — re-fetches after completions must not show the spinner
+  if (loading && firstLoad.current) {
     return (
-      <div className="min-h-screen bg-amber-50 flex items-center justify-center">
+      <div className="h-full bg-sky-100 flex items-center justify-center">
         <motion.span className="text-5xl" animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 0.8 }}>⭐</motion.span>
       </div>
     )
   }
+  firstLoad.current = false
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-amber-50 pb-10">
+    <div ref={containerRef} className="h-full flex flex-col overflow-hidden">
 
-      {/* Top bar */}
-      <div className="flex justify-between items-center px-4 pt-4 pb-2 max-w-md mx-auto">
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
-          className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm font-bold text-gray-600 text-sm">
-          <span>👨‍👩‍👧</span> Parent
-        </motion.button>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
-          className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm font-bold text-gray-600 text-sm">
-          <span>⚙️</span> Réglages
-        </motion.button>
-      </div>
+      {/* ── HERO ─────────────────────────────────────────────────── */}
+      <div className="relative flex-shrink-0 bg-gradient-to-b from-sky-300 via-sky-200 to-sky-100 px-4 pt-3 pb-6 overflow-hidden">
 
-      <div className="px-4 max-w-md mx-auto">
+        {/* Decorative clouds */}
+        <span className="absolute top-10 left-6 text-3xl opacity-80 pointer-events-none select-none">☁️</span>
+        <span className="absolute top-5 left-20 text-xl opacity-50 pointer-events-none select-none">☁️</span>
 
-        {/* Hero section */}
-        <div className="relative flex items-center gap-4 mb-5 mt-2">
-          {/* Photo + level badge */}
-          <div className="relative flex-shrink-0">
+        {/* Sun */}
+        <span className="absolute top-3 right-14 text-4xl pointer-events-none select-none"
+          style={{ display: 'inline-block', animation: 'spin 30s linear infinite' }}>
+          🌞
+        </span>
+
+        {/* Sparkles */}
+        <span className="absolute top-20 right-5 text-yellow-300 font-black text-xl pointer-events-none select-none">✦</span>
+        <span className="absolute bottom-10 left-3 text-yellow-200 text-sm pointer-events-none select-none">✦</span>
+
+        {/* Top bar */}
+        <div className="flex justify-between items-center mb-4 relative z-10">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
+            className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
+            <span>👨‍👩‍👧</span> Parent
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
+            className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
+            <span>⚙️</span> Réglages
+          </motion.button>
+        </div>
+
+        {/* Avatar + greeting */}
+        <div className="flex items-center gap-4 relative z-10">
+          {/* Avatar circle */}
+          <div className="flex-shrink-0">
             {childData.photoUrl
               ? <img src={childData.photoUrl} alt={childData.name}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" />
-              : <div className="w-20 h-20 rounded-full flex items-center justify-center text-5xl border-4 border-white shadow-lg bg-white">
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-xl" />
+              : <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center"
+                  style={{ fontSize: '3rem' }}>
                   {childData.avatarEmoji}
                 </div>
             }
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-kids-orange rounded-full border-2 border-white flex items-center justify-center shadow">
-              <span className="text-white text-xs font-black">{childData.level}</span>
-            </div>
           </div>
 
-          {/* Greeting */}
+          {/* Name + speech bubble */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black text-gray-800">
+            <h1 className="text-2xl font-black text-gray-800 drop-shadow-sm">
               Salut {childData.name} ! 👋
             </h1>
-            <p className="text-sm font-semibold text-gray-500 mt-0.5">{motivMessage()}</p>
-          </div>
-
-          {/* Dragon mascot */}
-          <div className="text-5xl flex-shrink-0 select-none">🐉</div>
-        </div>
-
-        {/* Stats — 3 cards */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-            <span className="text-2xl">🔥</span>
-            <p className="text-xl font-black text-orange-500 mt-1">{childData.streakDays}</p>
-            <p className="text-xs text-gray-400 font-semibold leading-tight mt-0.5">Série<br/>actuelle</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-            <span className="text-2xl">⭐</span>
-            <p className="text-xl font-black text-yellow-500 mt-1">{todayPoints}</p>
-            <p className="text-xs text-gray-400 font-semibold leading-tight mt-0.5">points<br/>gagnés</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-            <span className="text-2xl">🏆</span>
-            <p className="text-xl font-black text-purple-500 mt-1">{childData.level}</p>
-            <p className="text-xs text-gray-400 font-semibold leading-tight mt-0.5">{completedCount}/{habits.length}<br/>faites</p>
-          </div>
-        </div>
-
-        {/* XP Bar */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <div className="flex items-center gap-3 mb-3">
-            {/* Shield badge */}
-            <div className="flex-shrink-0 w-11 h-11 bg-gradient-to-b from-purple-500 to-purple-700 rounded-xl flex flex-col items-center justify-center shadow-md">
-              <span className="text-white text-xs font-black leading-none">NIV.</span>
-              <span className="text-white text-base font-black leading-none">{childData.level}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-1.5">
-                <span className="font-black text-gray-800 text-sm truncate">{levelName}</span>
-                <span className="text-xs font-bold text-gray-400 ml-2 flex-shrink-0">{childData.xp} XP</span>
-              </div>
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-400"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${xpPct}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                />
-              </div>
-              <p className="text-xs text-gray-400 mt-1 text-right font-semibold">
-                {nextXP - childData.xp} XP avant le niveau {childData.level + 1}
-              </p>
+            <div className="mt-2 bg-white/90 rounded-2xl px-4 py-2 shadow-sm inline-block max-w-[200px]">
+              <p className="text-sm font-bold text-gray-700">{motivMessage()}</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Habits section */}
-        {habits.length > 0 && (
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-black text-gray-800 text-base">Mes habitudes</span>
-              <span className="text-sm font-bold text-gray-400">{completedCount}/{habits.length} faites</span>
-            </div>
-            <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden mb-4">
-              <motion.div
-                className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: habits.length > 0 ? `${(completedCount / habits.length) * 100}%` : '0%' }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <AnimatePresence>
-                {habits.map((habit, i) => (
-                  <motion.div key={habit.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                    <HabitCard
-                      habit={habit}
-                      completed={isCompleted(habit.id)}
-                      onComplete={() => handleComplete(habit.id)}
-                      onUncomplete={() => handleUncomplete(habit.id)}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+      {/* ── MISSIONS LIST (scrollable) ────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto bg-sky-50 px-4 pt-4 pb-2">
+
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-black text-gray-800">🎯 Mes missions du jour</h2>
+          <span className="bg-white text-gray-600 font-bold text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+            {completedCount} / {habits.length} faites
+          </span>
+        </div>
+
+        {/* Habit rows */}
+        {habits.length > 0 ? (
+          <div className="space-y-2">
+            {habits.map((habit) => {
+              const done = isCompleted(habit.id)
+              return (
+                <motion.button
+                  key={habit.id}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={done ? () => handleUncomplete(habit.id) : () => handleComplete(habit.id)}
+                  className={`w-full bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 shadow-sm border-2 transition-all text-left ${
+                    done ? 'border-green-200 opacity-65' : 'border-transparent'
+                  }`}
+                >
+                  {/* Colored icon circle */}
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0 shadow-sm"
+                    style={{
+                      backgroundColor: (habit.color || '#FF9F43') + '28',
+                      border: `2px solid ${habit.color || '#FF9F43'}60`,
+                    }}
+                  >
+                    {habit.emoji}
+                  </div>
+
+                  {/* Habit name */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold text-gray-800 text-sm leading-snug ${done ? 'line-through text-gray-400' : ''}`}>
+                      {habit.title}
+                    </p>
+                  </div>
+
+                  {/* Points */}
+                  <div className="flex items-center gap-0.5 text-yellow-500 font-black text-sm flex-shrink-0">
+                    <span>⭐</span>
+                    <span>+{habit.pointValue}</span>
+                  </div>
+
+                  {/* Checkbox */}
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    done ? 'bg-green-500 border-green-500 shadow-md' : 'border-gray-300 bg-white'
+                  }`}>
+                    {done && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="text-white text-xs font-black">
+                        ✓
+                      </motion.span>
+                    )}
+                  </div>
+                </motion.button>
+              )
+            })}
           </div>
-        )}
-
-        {habits.length === 0 && (
+        ) : (
           <div className="text-center py-12 bg-white rounded-3xl shadow-sm">
             <div className="text-5xl mb-3">🌱</div>
             <p className="font-bold text-gray-500">Pas encore d'habitudes !</p>
@@ -240,21 +235,46 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
           </div>
         )}
 
-        {/* Perfect day */}
+        {/* Perfect day banner */}
         {completedCount === habits.length && habits.length > 0 && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className="mt-2 bg-gradient-to-r from-kids-teal to-kids-blue rounded-3xl p-6 text-center text-white shadow-xl">
-            <div className="text-5xl mb-2">🏆</div>
-            <p className="font-black text-2xl">JOURNÉE PARFAITE !</p>
-            <p className="font-semibold opacity-80">Tu as tout accompli aujourd'hui !</p>
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mt-4 bg-gradient-to-r from-kids-teal to-kids-blue rounded-3xl p-5 text-center text-white shadow-xl"
+          >
+            <div className="text-4xl mb-1">🏆</div>
+            <p className="font-black text-xl">JOURNÉE PARFAITE !</p>
+            <p className="font-semibold opacity-80 text-sm">Tu as tout accompli aujourd'hui !</p>
           </motion.div>
         )}
 
-        <BadgesSection key={badgesKey} childId={child.id} />
+        <div className="h-2" />
+      </div>
+
+      {/* ── STATS BAR (fixed bottom) ──────────────────────────────── */}
+      <div className="flex-shrink-0 bg-purple-100 border-t-2 border-purple-200 px-4 py-3 grid grid-cols-3 divide-x divide-purple-200">
+        <div className="flex flex-col items-center gap-0.5 pr-3">
+          <span className="text-2xl">🔥</span>
+          <p className="text-xl font-black text-gray-800 leading-tight">{childData.streakDays}</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Série actuelle</p>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 px-3">
+          <span className="text-2xl">⭐</span>
+          <p className="text-xl font-black text-gray-800 leading-tight">{todayPoints}</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Points gagnés</p>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 pl-3">
+          <span className="text-2xl">🏆</span>
+          <p className="text-xl font-black text-gray-800 leading-tight">{rewardsCount}</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Récompenses</p>
+        </div>
       </div>
 
       <CelebrationModal data={celebration} onClose={() => setCelebration(null)} />
       <BadgeEarnedModal badges={newBadges} onClose={() => setNewBadges([])} />
+
+      {/* CSS for sun spin */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

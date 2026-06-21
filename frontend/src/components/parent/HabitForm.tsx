@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import api from '../../api/client'
 
-const EMOJI_PRESETS = ['🦷', '📚', '🛏️', '🥗', '🏃', '🎨', '🧹', '😴', '💧', '📖', '🎵', '🧼', '🌿', '🎯']
-const COLORS = ['#FF6B6B', '#FF9F43', '#FECA57', '#1DD1A1', '#54A0FF', '#5F27CD', '#FF9FF3', '#48DBFB']
 
 export const CATEGORIES = [
   { id: 'GENERAL',      label: 'Général',      emoji: '📌' },
@@ -45,23 +43,38 @@ const FREQ_TYPES = [
   { value: 'MONTHLY',  icon: '🗓️', label: 'Une fois par mois' },
 ] as const
 
+export interface HabitDefaults {
+  title?: string
+  emoji?: string
+  color?: string
+  category?: string
+  pointValue?: number
+  daysOfWeek?: number[]
+  frequency?: 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY'
+}
+
 interface Props {
   childId: string
   onSave: () => void
   onCancel: () => void
   defaultDays?: number[]
+  defaultValues?: HabitDefaults
 }
 
-export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Props) {
+export default function HabitForm({ childId, onSave, onCancel, defaultDays, defaultValues }: Props) {
+  const initDays = defaultValues?.daysOfWeek ?? defaultDays ?? []
+  const initFreq: 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY' =
+    defaultValues?.frequency ?? (initDays.length === 7 ? 'DAILY' : 'WEEKLY')
+
   const [form, setForm] = useState({
-    title: '',
-    emoji: '⭐',
-    color: '#FF9F43',
-    category: 'GENERAL',
-    timeOfDay: 'ANYTIME',
-    pointValue: 10,
-    frequency: 'WEEKLY' as 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY',
-    daysOfWeek: defaultDays ?? [] as number[],
+    title:      defaultValues?.title    ?? '',
+    emoji:      defaultValues?.emoji    ?? '⭐',
+    color:      defaultValues?.color    ?? '#FF9F43',
+    category:   defaultValues?.category ?? 'GENERAL',
+    timeOfDay:  'ANYTIME',
+    pointValue: defaultValues?.pointValue ?? 10,
+    frequency:  initFreq,
+    daysOfWeek: initFreq === 'DAILY' ? [0,1,2,3,4,5,6] : initDays,
     intervalDays: 2,
     dayOfMonth: 1,
   })
@@ -125,21 +138,10 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Pr
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-3xl p-5 shadow-xl mt-4 border-2 border-kids-teal/30"
     >
-      <h3 className="font-black text-gray-800 text-lg mb-4">✨ Nouvelle habitude</h3>
+      <h3 className="font-black text-gray-800 text-lg mb-4">
+        {defaultValues?.title ? `✏️ Personnaliser — ${defaultValues.title}` : '✨ Nouvelle habitude'}
+      </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
-
-        {/* Emoji */}
-        <div>
-          <label className="text-sm font-bold text-gray-600 mb-2 block">Emoji</label>
-          <div className="flex gap-2 flex-wrap">
-            {EMOJI_PRESETS.map(e => (
-              <button key={e} type="button" onClick={() => setForm(f => ({ ...f, emoji: e }))}
-                className={`text-2xl p-2 rounded-xl border-2 transition-all ${form.emoji === e ? 'border-kids-orange bg-orange-50' : 'border-gray-200'}`}>
-                {e}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Nom */}
         <div>
@@ -150,31 +152,21 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays }: Pr
             required />
         </div>
 
-        {/* Catégorie */}
+        {/* Catégorie — liste scrollable */}
         <div>
           <label className="text-sm font-bold text-gray-600 mb-2 block">🏷️ Catégorie</label>
-          <div className="flex gap-2 flex-wrap">
+          <div className="divide-y divide-gray-100 border-2 border-gray-200 rounded-2xl overflow-hidden">
             {CATEGORIES.map(cat => (
               <button key={cat.id} type="button" onClick={() => setForm(f => ({ ...f, category: cat.id }))}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold border-2 transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-all ${
                   form.category === cat.id
-                    ? 'border-kids-blue bg-blue-50 text-kids-blue'
-                    : 'border-gray-200 text-gray-500'
+                    ? 'bg-blue-50 text-kids-blue'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}>
-                {cat.emoji} {cat.label}
+                <span className="text-base">{cat.emoji}</span>
+                <span>{cat.label}</span>
+                {form.category === cat.id && <span className="ml-auto text-kids-blue">✓</span>}
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Couleur */}
-        <div>
-          <label className="text-sm font-bold text-gray-600 mb-2 block">Couleur</label>
-          <div className="flex gap-2">
-            {COLORS.map(c => (
-              <button key={c} type="button" onClick={() => setForm(f => ({ ...f, color: c }))}
-                className={`w-8 h-8 rounded-full border-4 transition-transform ${form.color === c ? 'scale-125 border-gray-500' : 'border-transparent'}`}
-                style={{ backgroundColor: c }} />
             ))}
           </div>
         </div>
