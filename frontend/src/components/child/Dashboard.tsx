@@ -89,10 +89,10 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
 
   const completedCount = habits.filter(h => isCompleted(h.id)).length
 
-  const motivMessage = () => {
-    if (completedCount === habits.length && habits.length > 0) return '🏆 Journée parfaite !'
-    if (completedCount > habits.length / 2) return 'Tu progresses super bien ! ⭐'
-    return 'Tu fais un super travail ! 💪'
+  const motivData = () => {
+    if (completedCount === habits.length && habits.length > 0) return { emoji: '🏆', text: 'Journée parfaite !' }
+    if (completedCount > habits.length / 2) return { emoji: '⭐', text: 'Tu progresses super bien !' }
+    return { emoji: '💪', text: 'Tu fais un super travail !' }
   }
 
   // Only block render on very first load — re-fetches after completions must not show the spinner
@@ -126,14 +126,10 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
         <span className="absolute bottom-10 left-3 text-yellow-200 text-sm pointer-events-none select-none">✦</span>
 
         {/* Top bar */}
-        <div className="flex justify-between items-center mb-4 relative z-10">
+        <div className="flex items-center mb-4 relative z-10">
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
             className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
             <span>👨‍👩‍👧</span> Parent
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
-            className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
-            <span>⚙️</span> Réglages
           </motion.button>
         </div>
 
@@ -156,8 +152,9 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
             <h1 className="text-2xl font-black text-gray-800 drop-shadow-sm">
               Salut {childData.name} ! 👋
             </h1>
-            <div className="mt-2 bg-white/90 rounded-2xl px-4 py-2 shadow-sm inline-block max-w-[200px]">
-              <p className="text-sm font-bold text-gray-700">{motivMessage()}</p>
+            <div className="mt-2 bg-white/90 rounded-2xl px-3 py-2 shadow-sm inline-flex items-center gap-2">
+              <span className="text-2xl leading-none">{motivData().emoji}</span>
+              <p className="text-sm font-bold text-gray-700">{motivData().text}</p>
             </div>
           </div>
         </div>
