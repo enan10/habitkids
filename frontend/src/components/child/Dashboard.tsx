@@ -190,7 +190,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
                 >
                   {/* Colored icon circle */}
                   <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0 shadow-sm"
+                    className="w-16 h-16 rounded-full flex items-center justify-center text-4xl flex-shrink-0 shadow-sm"
                     style={{
                       backgroundColor: (habit.color || '#FF9F43') + '28',
                       border: `2px solid ${habit.color || '#FF9F43'}60`,
