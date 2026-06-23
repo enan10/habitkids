@@ -152,7 +152,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
             <h1 className="text-2xl font-black text-gray-800 drop-shadow-sm">
               Salut {childData.name} ! 👋
             </h1>
-            <div className="mt-2 bg-white/90 rounded-2xl px-3 py-2 shadow-sm inline-flex items-center gap-2">
+            <div className="mt-2 bg-white/90 rounded-2xl px-3 py-2 shadow-sm inline-flex items-center gap-2 whitespace-nowrap">
               <span className="text-2xl leading-none">{motivData().emoji}</span>
               <p className="text-sm font-bold text-gray-700">{motivData().text}</p>
             </div>
