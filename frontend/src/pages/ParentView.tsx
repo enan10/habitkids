@@ -165,12 +165,15 @@ function DonutChart({ completed, inProgress, missed }: { completed: number; inPr
   )
 }
 
-function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
+function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, selectionMode, selected, onToggleSelect }: {
   habit: any
   onDragEnd: () => void
   onDelete: () => void
   completedDates?: Set<string>
   weekDays?: { date: string; label: string }[]
+  selectionMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const controls = useDragControls()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -181,13 +184,22 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
       dragControls={controls}
       dragListener={false}
       onDragEnd={onDragEnd}
-      className="bg-white rounded-2xl p-3 shadow-sm relative"
+      className={`bg-white rounded-2xl p-3 shadow-sm relative transition-all ${selected ? 'ring-2 ring-red-400 bg-red-50' : ''}`}
     >
       <div className="flex items-center gap-3">
-        <span
-          className="text-gray-300 text-lg select-none cursor-grab active:cursor-grabbing touch-none px-1"
-          onPointerDown={(e) => controls.start(e)}
-        >⠿</span>
+        {selectionMode ? (
+          <button type="button" onClick={onToggleSelect}
+            className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+              selected ? 'bg-red-500 border-red-500' : 'border-gray-300 bg-white'
+            }`}>
+            {selected && <span className="text-white text-xs font-black">✓</span>}
+          </button>
+        ) : (
+          <span
+            className="text-gray-300 text-lg select-none cursor-grab active:cursor-grabbing touch-none px-1"
+            onPointerDown={(e) => controls.start(e)}
+          >⠿</span>
+        )}
         <span className="text-2xl">{habit.emoji}</span>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
@@ -197,13 +209,15 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-yellow-500">⭐ {habit.pointValue}</span>
-          <button onClick={() => setMenuOpen(v => !v)}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 font-bold text-lg">
-            ⋮
-          </button>
+          {!selectionMode && (
+            <button onClick={() => setMenuOpen(v => !v)}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 font-bold text-lg">
+              ⋮
+            </button>
+          )}
         </div>
       </div>
-      {menuOpen && (
+      {menuOpen && !selectionMode && (
         <div className="absolute right-3 top-10 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
           <button onClick={() => { onDelete(); setMenuOpen(false) }}
             className="flex items-center gap-2 px-4 py-3 text-red-500 font-bold text-sm hover:bg-red-50 w-full">
@@ -211,7 +225,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays }: {
           </button>
         </div>
       )}
-      {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
+      {menuOpen && !selectionMode && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {weekDays && completedDates && (
         <div className="flex gap-1 mt-2 ml-10">
           {weekDays.map(({ date, label }) => {
@@ -267,6 +281,8 @@ export default function ParentView() {
   const [presetDefaults, setPresetDefaults] = useState<HabitDefaults | null>(null)
   const [suggestCatFilter, setSuggestCatFilter] = useState<string>('ALL')
   const [addForDay, setAddForDay] = useState<number | null>(null)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedHabitIds, setSelectedHabitIds] = useState<Set<string>>(new Set())
 
   // Rewards
   const [rewards, setRewards] = useState<Reward[]>([])
@@ -446,6 +462,15 @@ export default function ParentView() {
 
   const deleteHabit = async (habitId: string) => {
     await api.delete(`/habits/${habitId}`)
+    fetchChildren()
+  }
+
+  const deleteSelectedHabits = async () => {
+    if (selectedHabitIds.size === 0) return
+    if (!confirm(`Supprimer ${selectedHabitIds.size} habitude${selectedHabitIds.size > 1 ? 's' : ''} ?`)) return
+    await Promise.all([...selectedHabitIds].map(id => api.delete(`/habits/${id}`)))
+    setSelectedHabitIds(new Set())
+    setSelectionMode(false)
     fetchChildren()
   }
 
@@ -919,18 +944,57 @@ export default function ParentView() {
             <p className="text-xs text-gray-400">{activeChild.habits?.length ?? 0} habitude{(activeChild.habits?.length ?? 0) !== 1 ? 's' : ''}</p>
           </div>
           <div className="flex gap-2 items-center">
-            <button
-              onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
-              className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
-              {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
-            </button>
-            <motion.button whileTap={{ scale: 0.95 }}
-              onClick={() => setShowSuggestions(true)}
-              className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
-              + Ajouter
-            </motion.button>
+            {!selectionMode ? (
+              <>
+                <button
+                  onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
+                  className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
+                  {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
+                </button>
+                <button
+                  onClick={() => { setSelectionMode(true); setSelectedHabitIds(new Set()) }}
+                  className="text-xs text-gray-500 font-bold px-3 py-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                  ☑️ Sélectionner
+                </button>
+                <motion.button whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowSuggestions(true)}
+                  className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
+                  + Ajouter
+                </motion.button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setSelectionMode(false); setSelectedHabitIds(new Set()) }}
+                className="text-xs text-gray-500 font-bold px-3 py-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                Annuler
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Barre d'actions en mode sélection */}
+        {selectionMode && (
+          <div className="flex items-center justify-between mb-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-2.5">
+            <button
+              onClick={() => {
+                const allIds = new Set(filteredHabits.map((h: any) => h.id))
+                if (selectedHabitIds.size === filteredHabits.length) {
+                  setSelectedHabitIds(new Set())
+                } else {
+                  setSelectedHabitIds(allIds)
+                }
+              }}
+              className="text-sm font-bold text-red-600">
+              {selectedHabitIds.size === filteredHabits.length ? '☐ Tout désélectionner' : '☑ Tout sélectionner'}
+            </button>
+            <motion.button whileTap={{ scale: 0.95 }}
+              onClick={deleteSelectedHabits}
+              disabled={selectedHabitIds.size === 0}
+              className="bg-red-500 text-white font-black px-4 py-1.5 rounded-xl text-sm disabled:opacity-40">
+              🗑️ Supprimer {selectedHabitIds.size > 0 ? `(${selectedHabitIds.size})` : ''}
+            </motion.button>
+          </div>
+        )}
 
         {/* Category filter */}
         {usedCategories.length > 1 && (
@@ -964,6 +1028,13 @@ export default function ParentView() {
                 onDelete={() => deleteHabit(habit.id)}
                 completedDates={completedByHabit.get(habit.id)}
                 weekDays={last7Days}
+                selectionMode={selectionMode}
+                selected={selectedHabitIds.has(habit.id)}
+                onToggleSelect={() => setSelectedHabitIds(prev => {
+                  const next = new Set(prev)
+                  next.has(habit.id) ? next.delete(habit.id) : next.add(habit.id)
+                  return next
+                })}
               />
             ))}
           </Reorder.Group>
