@@ -9,6 +9,13 @@ import { launchConfetti } from '../../utils/confetti'
 import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
 
+const HABIT_SECTIONS = [
+  { key: 'MORNING',   label: 'Matin',           icon: '🌅', bg: 'bg-amber-50',  text: 'text-amber-700'  },
+  { key: 'AFTERNOON', label: 'Après-midi',       icon: '☀️', bg: 'bg-sky-100',   text: 'text-sky-700'    },
+  { key: 'EVENING',   label: 'Soir',             icon: '🌙', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  { key: 'ANYTIME',   label: 'Toute la journée', icon: '📌', bg: 'bg-gray-100',  text: 'text-gray-600'   },
+]
+
 interface Child {
   id: string
   name: string
@@ -171,56 +178,65 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
           </span>
         </div>
 
-        {/* Habit rows */}
+        {/* Habit rows grouped by time */}
         {habits.length > 0 ? (
-          <div className="space-y-2">
-            {habits.map((habit) => {
-              const done = isCompleted(habit.id)
+          <div className="space-y-4">
+            {HABIT_SECTIONS.map(section => {
+              const sectionHabits = habits.filter(h => (h.timeOfDay ?? 'ANYTIME') === section.key)
+              if (sectionHabits.length === 0) return null
+              const sectionDone = sectionHabits.filter(h => isCompleted(h.id)).length
               return (
-                <motion.button
-                  key={habit.id}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={done ? () => handleUncomplete(habit.id) : () => handleComplete(habit.id)}
-                  className={`w-full bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 shadow-sm border-2 transition-all text-left ${
-                    done ? 'border-green-200 opacity-65' : 'border-transparent'
-                  }`}
-                >
-                  {/* Colored icon circle */}
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-4xl flex-shrink-0 shadow-sm"
-                    style={{
-                      backgroundColor: (habit.color || '#FF9F43') + '28',
-                      border: `2px solid ${habit.color || '#FF9F43'}60`,
-                    }}
-                  >
-                    {habit.emoji}
+                <div key={section.key}>
+                  {/* Section header */}
+                  <div className={`flex items-center justify-between px-3 py-2 rounded-2xl mb-2 ${section.bg}`}>
+                    <span className={`font-black text-sm ${section.text}`}>{section.icon} {section.label}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/70 ${section.text}`}>
+                      {sectionDone}/{sectionHabits.length}
+                    </span>
                   </div>
-
-                  {/* Habit name */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-bold text-gray-800 text-sm leading-snug ${done ? 'line-through text-gray-400' : ''}`}>
-                      {habit.title}
-                    </p>
+                  <div className="space-y-2">
+                    {sectionHabits.map(habit => {
+                      const done = isCompleted(habit.id)
+                      return (
+                        <motion.button
+                          key={habit.id}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={done ? () => handleUncomplete(habit.id) : () => handleComplete(habit.id)}
+                          className={`w-full bg-white rounded-2xl px-3 py-2.5 flex items-center gap-3 shadow-sm border-2 transition-all text-left ${
+                            done ? 'border-green-200 opacity-65' : 'border-transparent'
+                          }`}
+                        >
+                          <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center text-4xl flex-shrink-0 shadow-sm"
+                            style={{
+                              backgroundColor: (habit.color || '#FF9F43') + '28',
+                              border: `2px solid ${habit.color || '#FF9F43'}60`,
+                            }}
+                          >
+                            {habit.emoji}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-bold text-gray-800 text-sm leading-snug ${done ? 'line-through text-gray-400' : ''}`}>
+                              {habit.title}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-0.5 text-yellow-500 font-black text-sm flex-shrink-0">
+                            <span>⭐</span>
+                            <span>+{habit.pointValue}</span>
+                          </div>
+                          <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                            done ? 'bg-green-500 border-green-500 shadow-md' : 'border-gray-300 bg-white'
+                          }`}>
+                            {done && (
+                              <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                className="text-white text-xs font-black">✓</motion.span>
+                            )}
+                          </div>
+                        </motion.button>
+                      )
+                    })}
                   </div>
-
-                  {/* Points */}
-                  <div className="flex items-center gap-0.5 text-yellow-500 font-black text-sm flex-shrink-0">
-                    <span>⭐</span>
-                    <span>+{habit.pointValue}</span>
-                  </div>
-
-                  {/* Checkbox */}
-                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    done ? 'bg-green-500 border-green-500 shadow-md' : 'border-gray-300 bg-white'
-                  }`}>
-                    {done && (
-                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className="text-white text-xs font-black">
-                        ✓
-                      </motion.span>
-                    )}
-                  </div>
-                </motion.button>
+                </div>
               )
             })}
           </div>

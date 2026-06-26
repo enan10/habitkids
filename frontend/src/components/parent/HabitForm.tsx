@@ -43,6 +43,13 @@ const FREQ_TYPES = [
   { value: 'MONTHLY',  icon: '🗓️', label: 'Une fois par mois' },
 ] as const
 
+const TIME_OPTIONS = [
+  { value: 'MORNING',   icon: '🌅', label: 'Matin'    },
+  { value: 'AFTERNOON', icon: '☀️', label: 'Midi'     },
+  { value: 'EVENING',   icon: '🌙', label: 'Soir'     },
+  { value: 'ANYTIME',   icon: '📌', label: 'Toujours' },
+] as const
+
 export interface HabitDefaults {
   title?: string
   emoji?: string
@@ -51,6 +58,7 @@ export interface HabitDefaults {
   pointValue?: number
   daysOfWeek?: number[]
   frequency?: 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY'
+  timeOfDay?: 'MORNING' | 'AFTERNOON' | 'EVENING' | 'ANYTIME'
 }
 
 interface Props {
@@ -71,7 +79,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
     emoji:      defaultValues?.emoji    ?? '⭐',
     color:      defaultValues?.color    ?? '#FF9F43',
     category:   defaultValues?.category ?? 'GENERAL',
-    timeOfDay:  'ANYTIME',
+    timeOfDay:  defaultValues?.timeOfDay ?? 'MORNING',
     pointValue: defaultValues?.pointValue ?? 10,
     frequency:  initFreq,
     daysOfWeek: initFreq === 'DAILY' ? [0,1,2,3,4,5,6] : initDays,
@@ -166,6 +174,25 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
                 <span className="text-base">{cat.emoji}</span>
                 <span>{cat.label}</span>
                 {form.category === cat.id && <span className="ml-auto text-kids-blue">✓</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Moment de la journée */}
+        <div>
+          <label className="text-sm font-bold text-gray-600 mb-2 block">🕐 Quand ?</label>
+          <div className="grid grid-cols-4 gap-2">
+            {TIME_OPTIONS.map(opt => (
+              <button key={opt.value} type="button"
+                onClick={() => setForm(f => ({ ...f, timeOfDay: opt.value }))}
+                className={`flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${
+                  form.timeOfDay === opt.value
+                    ? 'bg-kids-teal text-white border-kids-teal shadow-sm'
+                    : 'bg-white text-gray-500 border-gray-200'
+                }`}>
+                <span className="text-lg">{opt.icon}</span>
+                <span>{opt.label}</span>
               </button>
             ))}
           </div>
