@@ -79,7 +79,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
     emoji:      defaultValues?.emoji    ?? '⭐',
     color:      defaultValues?.color    ?? '#FF9F43',
     category:   defaultValues?.category ?? 'GENERAL',
-    timeOfDay:  defaultValues?.timeOfDay ?? 'MORNING',
+    timesOfDay: [defaultValues?.timeOfDay ?? 'MORNING'] as string[],
     pointValue: defaultValues?.pointValue ?? 10,
     frequency:  initFreq,
     daysOfWeek: initFreq === 'DAILY' ? [0,1,2,3,4,5,6] : initDays,
@@ -87,6 +87,19 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
     dayOfMonth: 1,
   })
   const [loading, setLoading] = useState(false)
+
+  const toggleTimeOfDay = (value: string) => {
+    setForm(f => {
+      const cur = f.timesOfDay
+      if (value === 'ANYTIME') return { ...f, timesOfDay: ['ANYTIME'] }
+      const withoutAnytime = cur.filter(t => t !== 'ANYTIME')
+      if (withoutAnytime.includes(value)) {
+        const next = withoutAnytime.filter(t => t !== value)
+        return { ...f, timesOfDay: next.length === 0 ? [value] : next }
+      }
+      return { ...f, timesOfDay: [...withoutAnytime, value] }
+    })
+  }
 
   const toggleDay = (day: number) => {
     setForm(f => ({
@@ -118,20 +131,19 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
       return alert('Sélectionnez au moins un jour')
     setLoading(true)
     try {
-      const data: any = {
+      const base: any = {
         title: form.title,
         emoji: form.emoji,
         color: form.color,
         category: form.category,
-        timeOfDay: form.timeOfDay,
         pointValue: form.pointValue,
         frequency: form.frequency,
         daysOfWeek: form.frequency === 'WEEKLY' ? form.daysOfWeek : [0, 1, 2, 3, 4, 5, 6],
         childId,
       }
-      if (form.frequency === 'INTERVAL') data.intervalDays = form.intervalDays
-      if (form.frequency === 'MONTHLY') data.dayOfMonth = form.dayOfMonth
-      await api.post('/habits', data)
+      if (form.frequency === 'INTERVAL') base.intervalDays = form.intervalDays
+      if (form.frequency === 'MONTHLY') base.dayOfMonth = form.dayOfMonth
+      await Promise.all(form.timesOfDay.map(tod => api.post('/habits', { ...base, timeOfDay: tod })))
       onSave()
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erreur')
@@ -179,22 +191,36 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
           </div>
         </div>
 
-        {/* Moment de la journée */}
+        {/* Moment de la journée — multi-select */}
         <div>
-          <label className="text-sm font-bold text-gray-600 mb-2 block">🕐 Quand ?</label>
+          <div className="flex items-center gap-2 mb-2">
+            <label className="text-sm font-bold text-gray-600">🕐 Quand ?</label>
+            {form.timesOfDay.length > 1 && !form.timesOfDay.includes('ANYTIME') && (
+              <span className="bg-kids-teal text-white text-xs font-black px-2 py-0.5 rounded-full">
+                {form.timesOfDay.length}x par jour
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mb-2">Tu peux sélectionner plusieurs moments</p>
           <div className="grid grid-cols-4 gap-2">
-            {TIME_OPTIONS.map(opt => (
-              <button key={opt.value} type="button"
-                onClick={() => setForm(f => ({ ...f, timeOfDay: opt.value }))}
-                className={`flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${
-                  form.timeOfDay === opt.value
-                    ? 'bg-kids-teal text-white border-kids-teal shadow-sm'
-                    : 'bg-white text-gray-500 border-gray-200'
-                }`}>
-                <span className="text-lg">{opt.icon}</span>
-                <span>{opt.label}</span>
-              </button>
-            ))}
+            {TIME_OPTIONS.map(opt => {
+              const active = form.timesOfDay.includes(opt.value)
+              return (
+                <button key={opt.value} type="button"
+                  onClick={() => toggleTimeOfDay(opt.value)}
+                  className={`relative flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${
+                    active
+                      ? 'bg-kids-teal text-white border-kids-teal shadow-sm'
+                      : 'bg-white text-gray-500 border-gray-200'
+                  }`}>
+                  <span className="text-lg">{opt.icon}</span>
+                  <span>{opt.label}</span>
+                  {active && (
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-kids-teal rounded-full flex items-center justify-center text-kids-teal text-[10px] font-black">✓</span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 
