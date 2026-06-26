@@ -23,7 +23,8 @@
     "rewards": "المكافآت",
     "motiv_perfect": "يوم مثالي !",
     "motiv_progress": "أنت تتقدم بشكل رائع !",
-    "motiv_default": "أنت تقوم بعمل رائع !"
+    "motiv_default": "أنت تقوم بعمل رائع !",
+    "done_label": "تم !"
   },
 
   "time": {

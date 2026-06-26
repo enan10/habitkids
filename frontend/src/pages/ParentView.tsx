@@ -11,6 +11,7 @@ import { mergePhotos, setChildPhoto, removeChildPhoto } from '../utils/childPhot
 import NotificationSettings from '../components/parent/NotificationSettings'
 import UpgradeModal from '../components/parent/UpgradeModal'
 import { setLanguage } from '../i18n'
+import { habitTitle } from '../utils/habitTitle'
 
 interface Child {
   id: string
@@ -128,6 +129,7 @@ function getCategoryInfo(id: string) {
   return CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0]
 }
 
+
 function isHabitDueOnDate(habit: any, date: string): boolean {
   const freq: string = habit.frequency ?? 'WEEKLY'
   if (freq === 'DAILY') return true
@@ -229,7 +231,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
         )}
         <span className="text-2xl">{habit.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+          <p className="font-bold text-gray-800 text-sm truncate">{habitTitle(habit, t)}</p>
           <p className="text-xs text-gray-400">
             {cat.emoji} {t('categories.' + cat.id)} · {(habit.daysOfWeek ?? []).length === 7 ? t('parent.quotidien') : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => t('days.short_' + d)).join(' ')}
           </p>
@@ -858,7 +860,7 @@ export default function ParentView() {
                 <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50">
                   <div className="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
                   <span className="text-xl">{habit.emoji}</span>
-                  <p className="flex-1 font-semibold text-gray-800 text-sm">{habit.title}</p>
+                  <p className="flex-1 font-semibold text-gray-800 text-sm">{habitTitle(habit, t)}</p>
                   <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ +{habit.pointValue}</span>
                 </div>
               ))}
@@ -876,7 +878,7 @@ export default function ParentView() {
                     <span className="text-white text-xs font-bold">✓</span>
                   </div>
                   <span className="text-xl">{habit.emoji}</span>
-                  <p className="flex-1 font-semibold text-gray-500 text-sm line-through">{habit.title}</p>
+                  <p className="flex-1 font-semibold text-gray-500 text-sm line-through">{habitTitle(habit, t)}</p>
                   <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ +{habit.pointValue}</span>
                 </div>
               ))}
@@ -1127,7 +1129,7 @@ export default function ParentView() {
                     </div>
                     <span className="text-2xl">{habit.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                      <p className="font-bold text-gray-800 text-sm truncate">{habitTitle(habit, t)}</p>
                       <p className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)}</p>
                     </div>
                     <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ {habit.pointValue}</span>
@@ -1179,7 +1181,7 @@ export default function ParentView() {
                             <div key={habit.id} className="flex items-center gap-3 px-4 py-2.5">
                               <span className="text-xl">{habit.emoji}</span>
                               <div className="flex-1 min-w-0">
-                                <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                                <p className="font-bold text-gray-800 text-sm truncate">{habitTitle(habit, t)}</p>
                                 <span className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)} · ⭐ {habit.pointValue}</span>
                               </div>
                               <button onClick={() => removeHabitFromDay(habit.id, day, habit.daysOfWeek ?? [])}

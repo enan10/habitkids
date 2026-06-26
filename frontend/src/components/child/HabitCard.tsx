@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { habitTitle } from '../../utils/habitTitle'
 
 interface Habit {
   id: string
   title: string
   emoji: string
+  category?: string
   color: string
   pointValue: number
 }
@@ -16,6 +19,7 @@ interface Props {
 }
 
 export default function HabitCard({ habit, completed, onComplete, onUncomplete }: Props) {
+  const { t } = useTranslation()
   return (
     <motion.button
       onClick={completed ? onUncomplete : onComplete}
@@ -42,13 +46,13 @@ export default function HabitCard({ habit, completed, onComplete, onUncomplete }
       <span className="text-3xl leading-none">{habit.emoji}</span>
 
       <span className={`font-black text-xs text-center leading-tight ${completed ? 'text-white' : 'text-gray-700'}`}>
-        {habit.title}
+        {habitTitle(habit, t)}
       </span>
 
       <div className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
         completed ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500'
       }`}>
-        {completed ? '✅ Fait !' : `⭐ +${habit.pointValue}`}
+        {completed ? `✅ ${t('child.done_label')}` : `⭐ +${habit.pointValue}`}
       </div>
     </motion.button>
   )

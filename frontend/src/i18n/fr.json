@@ -23,7 +23,8 @@
     "rewards": "Récompenses",
     "motiv_perfect": "Journée parfaite !",
     "motiv_progress": "Tu progresses super bien !",
-    "motiv_default": "Tu fais un super travail !"
+    "motiv_default": "Tu fais un super travail !",
+    "done_label": "Fait !"
   },
 
   "time": {

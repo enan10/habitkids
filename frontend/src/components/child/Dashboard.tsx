@@ -9,6 +9,7 @@ import { playComplete, playPerfectDay, playUncomplete } from '../../utils/sounds
 import { launchConfetti } from '../../utils/confetti'
 import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
+import { habitTitle } from '../../utils/habitTitle'
 
 const HABIT_SECTIONS = [
   { key: 'MORNING',   tKey: 'time.morning',   icon: '🌅', bg: 'bg-amber-50',  text: 'text-amber-700'  },
@@ -219,7 +220,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`font-bold text-gray-800 text-sm leading-snug ${done ? 'line-through text-gray-400' : ''}`}>
-                              {habit.title}
+                              {habitTitle(habit, t)}
                             </p>
                           </div>
                           <div className="flex items-center gap-0.5 text-yellow-500 font-black text-sm flex-shrink-0">
