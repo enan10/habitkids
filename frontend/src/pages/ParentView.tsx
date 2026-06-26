@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, Reorder, useDragControls, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
 import HabitForm, { CATEGORIES, HabitDefaults } from '../components/parent/HabitForm'
@@ -9,6 +10,7 @@ import PhotoPicker from '../components/parent/PhotoPicker'
 import { mergePhotos, setChildPhoto, removeChildPhoto } from '../utils/childPhotos'
 import NotificationSettings from '../components/parent/NotificationSettings'
 import UpgradeModal from '../components/parent/UpgradeModal'
+import { setLanguage } from '../i18n'
 
 interface Child {
   id: string
@@ -200,6 +202,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
 }) {
   const controls = useDragControls()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { t } = useTranslation()
   const cat = getCategoryInfo(habit.category || 'GENERAL')
   return (
     <Reorder.Item
@@ -227,7 +230,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
           <p className="text-xs text-gray-400">
-            {cat.emoji} {cat.label} · {(habit.daysOfWeek ?? []).length === 7 ? 'Quotidien' : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d]).join(' ')}
+            {cat.emoji} {t('categories.' + cat.id)} · {(habit.daysOfWeek ?? []).length === 7 ? 'Quotidien' : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d]).join(' ')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -279,6 +282,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
 
 export default function ParentView() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const { user, logout } = useAuthStore()
   const isPremium = user?.plan === 'PREMIUM'
 
@@ -666,7 +670,7 @@ export default function ParentView() {
                   {CATEGORIES.map(cat => (
                     <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
                       className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === cat.id ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
-                      {cat.emoji} {cat.label}
+                      {cat.emoji} {t('categories.' + cat.id)}
                     </button>
                   ))}
                 </div>
@@ -684,7 +688,7 @@ export default function ParentView() {
                           <span className="text-xl">{preset.emoji}</span>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
-                            <p className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {preset.pointValue} pts</p>
+                            <p className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)} · ⭐ {preset.pointValue} pts</p>
                           </div>
                           {alreadyAdded
                             ? <span className="text-green-400 font-bold text-lg">✓</span>
@@ -931,7 +935,7 @@ export default function ParentView() {
                       <div key={skill.id}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                            <span>{skill.emoji}</span>{skill.label}
+                            <span>{skill.emoji}</span>{t('skills.' + skill.id)}
                           </span>
                           <span className="text-xs font-black" style={{ color: skill.color }}>{score > 0 ? `+${score} pts` : '—'}</span>
                         </div>
@@ -1086,7 +1090,7 @@ export default function ParentView() {
               return (
                 <button key={catId} onClick={() => setCategoryFilter(catId)}
                   className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${categoryFilter === catId ? 'bg-kids-orange text-white border-kids-orange' : 'bg-white text-gray-500 border-gray-200'}`}>
-                  {cat.emoji} {cat.label}
+                  {cat.emoji} {t('categories.' + cat.id)}
                 </button>
               )
             })}
@@ -1121,7 +1125,7 @@ export default function ParentView() {
                     <span className="text-2xl">{habit.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
-                      <p className="text-xs text-gray-400">{cat.emoji} {cat.label}</p>
+                      <p className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)}</p>
                     </div>
                     <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ {habit.pointValue}</span>
                   </button>
@@ -1173,7 +1177,7 @@ export default function ParentView() {
                               <span className="text-xl">{habit.emoji}</span>
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
-                                <span className="text-xs text-gray-400">{cat.emoji} {cat.label} · ⭐ {habit.pointValue}</span>
+                                <span className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)} · ⭐ {habit.pointValue}</span>
                               </div>
                               <button onClick={() => removeHabitFromDay(habit.id, day, habit.daysOfWeek ?? [])}
                                 className="text-red-300 hover:text-red-500 p-1">🗑️</button>
@@ -1432,6 +1436,31 @@ export default function ParentView() {
           </div>
         </div>
       )}
+
+      {/* Language selector */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <p className="font-black text-gray-700 text-sm mb-3">🌐 {t('profile.language')}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLanguage('fr')}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-all ${
+              i18n.language === 'fr'
+                ? 'bg-kids-blue text-white border-kids-blue shadow-md'
+                : 'bg-white text-gray-500 border-gray-200'
+            }`}>
+            🇫🇷 {t('profile.lang_fr')}
+          </button>
+          <button
+            onClick={() => setLanguage('ar')}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-all ${
+              i18n.language === 'ar'
+                ? 'bg-kids-blue text-white border-kids-blue shadow-md'
+                : 'bg-white text-gray-500 border-gray-200'
+            }`}>
+            🇸🇦 {t('profile.lang_ar')}
+          </button>
+        </div>
+      </div>
 
       {/* Changer le mot de passe */}
       <button onClick={() => { setShowChangePassword(true); setPwError(''); setPwSuccess(false) }}
@@ -1905,13 +1934,13 @@ export default function ParentView() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <div className="flex items-center justify-around max-w-md mx-auto px-2 py-1">
           {[
-            { id: 'accueil',      icon: '🏠', label: 'Accueil' },
-            { id: 'habitudes',    icon: '📋', label: 'Habitudes' },
+            { id: 'accueil',   icon: '🏠', tKey: 'nav.accueil'   },
+            { id: 'habitudes', icon: '📋', tKey: 'nav.habitudes'  },
           ].map(item => (
             <button key={item.id} onClick={() => setNavTab(item.id as any)}
               className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>
               <span className="text-xl">{item.icon}</span>
-              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{item.label}</span>
+              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{t(item.tKey)}</span>
             </button>
           ))}
 
@@ -1923,13 +1952,13 @@ export default function ParentView() {
           </motion.button>
 
           {[
-            { id: 'recompenses', icon: '🎁', label: 'Récompenses' },
-            { id: 'profil',      icon: '👤', label: 'Profil' },
+            { id: 'recompenses', icon: '🎁', tKey: 'nav.recompenses' },
+            { id: 'profil',      icon: '👤', tKey: 'nav.profil'       },
           ].map(item => (
             <button key={item.id} onClick={() => setNavTab(item.id as any)}
               className={`flex flex-col items-center py-2 px-4 rounded-xl transition-all ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>
               <span className="text-xl">{item.icon}</span>
-              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{item.label}</span>
+              <span className={`text-xs font-bold mt-0.5 ${navTab === item.id ? 'text-kids-orange' : 'text-gray-400'}`}>{t(item.tKey)}</span>
             </button>
           ))}
         </div>

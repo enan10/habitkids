@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import api from '../api/client'
 import { useAuthStore } from '../store/useStore'
 import Dashboard from '../components/child/Dashboard'
@@ -23,6 +24,7 @@ export default function ChildView() {
   const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   useEffect(() => {
     api.get('/children').then(res => {
@@ -49,11 +51,11 @@ export default function ChildView() {
     return (
       <div className="h-screen bg-gradient-to-b from-kids-yellow to-kids-orange flex flex-col items-center justify-center p-6 text-center">
         <div className="text-7xl mb-4">👨‍👩‍👧</div>
-        <h2 className="text-3xl font-black text-white mb-3">Bienvenue !</h2>
-        <p className="text-white/80 font-semibold mb-8 text-lg">Créez le profil de votre enfant pour commencer</p>
+        <h2 className="text-3xl font-black text-white mb-3">{t('auth.welcome')}</h2>
+        <p className="text-white/80 font-semibold mb-8 text-lg">{t('auth.welcome_sub')}</p>
         <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
           className="bg-white text-kids-orange font-black text-xl px-8 py-4 rounded-2xl shadow-lg">
-          👨‍👩‍👧 Espace Parent
+          {t('auth.parent_space')}
         </motion.button>
       </div>
     )

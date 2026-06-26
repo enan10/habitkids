@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 
 
 export const CATEGORIES = [
-  { id: 'GENERAL',      label: 'Général',      emoji: '📌' },
-  { id: 'HYGIENE',      label: 'Hygiène',      emoji: '🧼' },
-  { id: 'EDUCATION',    label: 'Éducation',    emoji: '📚' },
-  { id: 'SPORT',        label: 'Sport',        emoji: '🏃' },
-  { id: 'ALIMENTATION', label: 'Alimentation', emoji: '🥗' },
-  { id: 'SOMMEIL',      label: 'Sommeil',      emoji: '😴' },
-  { id: 'CREATIVITE',   label: 'Créativité',   emoji: '🎨' },
-  { id: 'MENAGE',       label: 'Ménage',       emoji: '🧹' },
-  { id: 'AUTONOMIE',    label: 'Autonomie',    emoji: '🦋' },
-  { id: 'NATURE',       label: 'Nature',       emoji: '🌿' },
-  { id: 'SOCIAL',       label: 'Social',       emoji: '👫' },
-  { id: 'SECURITE',     label: 'Sécurité',     emoji: '🛡️' },
+  { id: 'GENERAL',      emoji: '📌' },
+  { id: 'HYGIENE',      emoji: '🧼' },
+  { id: 'EDUCATION',    emoji: '📚' },
+  { id: 'SPORT',        emoji: '🏃' },
+  { id: 'ALIMENTATION', emoji: '🥗' },
+  { id: 'SOMMEIL',      emoji: '😴' },
+  { id: 'CREATIVITE',   emoji: '🎨' },
+  { id: 'MENAGE',       emoji: '🧹' },
+  { id: 'AUTONOMIE',    emoji: '🦋' },
+  { id: 'NATURE',       emoji: '🌿' },
+  { id: 'SOCIAL',       emoji: '👫' },
+  { id: 'SECURITE',     emoji: '🛡️' },
 ]
 
 const DAYS = [
@@ -28,26 +29,26 @@ const DAYS = [
   { label: 'Di', full: 'Dimanche', day: 0 },
 ]
 
-const WEEKLY_PRESETS: { label: string; icon: string; days: number[] | null }[] = [
-  { label: 'Jours scolaires', icon: '📚', days: [1, 2, 3, 4, 5] },
-  { label: 'Week-end',        icon: '🎉', days: [6, 0]           },
-  { label: 'Personnalisé',    icon: '✏️', days: null              },
+const WEEKLY_PRESETS: { tKey: string; icon: string; days: number[] | null }[] = [
+  { tKey: 'habit.school_days', icon: '📚', days: [1, 2, 3, 4, 5] },
+  { tKey: 'habit.weekend',     icon: '🎉', days: [6, 0]           },
+  { tKey: 'habit.custom',      icon: '✏️', days: null              },
 ]
 
 const INTERVAL_OPTIONS = [2, 3, 4, 5, 7, 10, 14, 21, 30]
 
 const FREQ_TYPES = [
-  { value: 'DAILY',    icon: '🔄', label: 'Tous les jours'    },
-  { value: 'WEEKLY',   icon: '📆', label: 'Certains jours'    },
-  { value: 'INTERVAL', icon: '🔁', label: 'Tous les X jours'  },
-  { value: 'MONTHLY',  icon: '🗓️', label: 'Une fois par mois' },
+  { value: 'DAILY',    icon: '🔄', tKey: 'habit.freq_daily'    },
+  { value: 'WEEKLY',   icon: '📆', tKey: 'habit.freq_weekly'   },
+  { value: 'INTERVAL', icon: '🔁', tKey: 'habit.freq_interval' },
+  { value: 'MONTHLY',  icon: '🗓️', tKey: 'habit.freq_monthly'  },
 ] as const
 
 const TIME_OPTIONS = [
-  { value: 'MORNING',   icon: '🌅', label: 'Matin'    },
-  { value: 'AFTERNOON', icon: '☀️', label: 'Midi'     },
-  { value: 'EVENING',   icon: '🌙', label: 'Soir'     },
-  { value: 'ANYTIME',   icon: '📌', label: 'Toujours' },
+  { value: 'MORNING',   icon: '🌅', tKey: 'time.morning'   },
+  { value: 'AFTERNOON', icon: '☀️', tKey: 'time.afternoon' },
+  { value: 'EVENING',   icon: '🌙', tKey: 'time.evening'   },
+  { value: 'ANYTIME',   icon: '📌', tKey: 'time.anytime'   },
 ] as const
 
 export interface HabitDefaults {
@@ -70,6 +71,7 @@ interface Props {
 }
 
 export default function HabitForm({ childId, onSave, onCancel, defaultDays, defaultValues }: Props) {
+  const { t } = useTranslation()
   const initDays = defaultValues?.daysOfWeek ?? defaultDays ?? []
   const initFreq: 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY' =
     defaultValues?.frequency ?? (initDays.length === 7 ? 'DAILY' : 'WEEKLY')
@@ -111,9 +113,9 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
   }
 
   const dayLabel = (): string => {
-    if (form.frequency === 'DAILY') return 'Tous les jours'
-    if (form.frequency === 'INTERVAL') return `Tous les ${form.intervalDays} jours`
-    if (form.frequency === 'MONTHLY') return `Le ${form.dayOfMonth} de chaque mois`
+    if (form.frequency === 'DAILY') return t('habit.freq_daily')
+    if (form.frequency === 'INTERVAL') return t('habit.n_days', { n: form.intervalDays })
+    if (form.frequency === 'MONTHLY') return `${t('habit.day_of_month').replace('__', String(form.dayOfMonth))}`
     const n = form.daysOfWeek.length
     if (n === 0) return 'Aucun jour sélectionné'
     if (n === 7) return 'Tous les jours'
@@ -128,7 +130,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.frequency === 'WEEKLY' && form.daysOfWeek.length === 0)
-      return alert('Sélectionnez au moins un jour')
+      return alert(t('habit.err_no_day'))
     setLoading(true)
     try {
       const base: any = {
@@ -159,22 +161,22 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
       className="bg-white rounded-3xl p-5 shadow-xl mt-4 border-2 border-kids-teal/30"
     >
       <h3 className="font-black text-gray-800 text-lg mb-4">
-        {defaultValues?.title ? `✏️ Personnaliser — ${defaultValues.title}` : '✨ Nouvelle habitude'}
+        {defaultValues?.title ? t('habit.customize', { title: defaultValues.title }) : t('habit.new')}
       </h3>
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {/* Nom */}
         <div>
-          <label className="text-sm font-bold text-gray-600 mb-1 block">Nom</label>
+          <label className="text-sm font-bold text-gray-600 mb-1 block">{t('habit.name_label')}</label>
           <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder="Ex: Se brosser les dents"
+            placeholder={t('habit.name_placeholder')}
             className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
             required />
         </div>
 
         {/* Catégorie — liste scrollable */}
         <div>
-          <label className="text-sm font-bold text-gray-600 mb-2 block">🏷️ Catégorie</label>
+          <label className="text-sm font-bold text-gray-600 mb-2 block">{t('habit.category_label')}</label>
           <div className="divide-y divide-gray-100 border-2 border-gray-200 rounded-2xl overflow-hidden">
             {CATEGORIES.map(cat => (
               <button key={cat.id} type="button" onClick={() => setForm(f => ({ ...f, category: cat.id }))}
@@ -184,7 +186,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}>
                 <span className="text-base">{cat.emoji}</span>
-                <span>{cat.label}</span>
+                <span>{t(`categories.${cat.id}`)}</span>
                 {form.category === cat.id && <span className="ml-auto text-kids-blue">✓</span>}
               </button>
             ))}
@@ -194,14 +196,14 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
         {/* Moment de la journée — multi-select */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm font-bold text-gray-600">🕐 Quand ?</label>
+            <label className="text-sm font-bold text-gray-600">{t('time.when')}</label>
             {form.timesOfDay.length > 1 && !form.timesOfDay.includes('ANYTIME') && (
               <span className="bg-kids-teal text-white text-xs font-black px-2 py-0.5 rounded-full">
-                {form.timesOfDay.length}x par jour
+                {t('time.times_per_day', { n: form.timesOfDay.length })}
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-400 mb-2">Tu peux sélectionner plusieurs moments</p>
+          <p className="text-xs text-gray-400 mb-2">{t('time.when_hint')}</p>
           <div className="grid grid-cols-4 gap-2">
             {TIME_OPTIONS.map(opt => {
               const active = form.timesOfDay.includes(opt.value)
@@ -214,7 +216,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
                       : 'bg-white text-gray-500 border-gray-200'
                   }`}>
                   <span className="text-lg">{opt.icon}</span>
-                  <span>{opt.label}</span>
+                  <span>{t(opt.tKey)}</span>
                   {active && (
                     <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white border-2 border-kids-teal rounded-full flex items-center justify-center text-kids-teal text-[10px] font-black">✓</span>
                   )}
@@ -239,7 +241,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
                     : 'bg-white text-gray-500 border-gray-200'
                 }`}>
                 <span className="text-base">{opt.icon}</span>
-                <span>{opt.label}</span>
+                <span>{t(opt.tKey)}</span>
               </button>
             ))}
           </div>
@@ -266,14 +268,14 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
                         p.days!.length === form.daysOfWeek.length && p.days!.every(d => form.daysOfWeek.includes(d))
                       )
                   return (
-                    <button key={preset.label} type="button"
+                    <button key={preset.tKey} type="button"
                       onClick={() => setForm(f => ({ ...f, daysOfWeek: preset.days ?? [] }))}
                       className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
                         matched || customActive
                           ? 'bg-kids-orange text-white border-kids-orange'
                           : 'bg-white text-gray-500 border-gray-200'
                       }`}>
-                      {preset.icon} {preset.label}
+                      {preset.icon} {t(preset.tKey)}
                     </button>
                   )
                 })}
@@ -329,7 +331,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
               </div>
               <div className="bg-orange-50 rounded-2xl p-3 text-center border-2 border-orange-100">
                 <p className="text-sm font-bold text-kids-orange">🔁 {dayLabel()}</p>
-                <p className="text-xs text-gray-400 mt-0.5">À partir d'aujourd'hui</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('habit.from_today')}</p>
               </div>
             </div>
           )}
@@ -337,7 +339,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
           {/* MONTHLY */}
           {form.frequency === 'MONTHLY' && (
             <div>
-              <p className="text-xs text-gray-500 font-semibold mb-2">Le __ de chaque mois :</p>
+              <p className="text-xs text-gray-500 font-semibold mb-2">{t('habit.day_of_month')}</p>
               <div className="grid grid-cols-7 gap-1 mb-3">
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
                   <button key={d} type="button"
@@ -360,7 +362,7 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
 
         {/* Points */}
         <div>
-          <label className="text-sm font-bold text-gray-600 mb-1 block">⭐ Points</label>
+          <label className="text-sm font-bold text-gray-600 mb-1 block">{t('habit.points_label')}</label>
           <select value={form.pointValue} onChange={e => setForm(f => ({ ...f, pointValue: Number(e.target.value) }))}
             className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:outline-none">
             {[5, 10, 15, 20, 30, 50].map(v => <option key={v} value={v}>{v} pts</option>)}
@@ -370,11 +372,11 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
         <div className="flex gap-2 pt-1">
           <motion.button type="submit" disabled={loading} whileTap={{ scale: 0.95 }}
             className="flex-1 bg-kids-teal text-white font-black py-3 rounded-2xl text-lg shadow-md disabled:opacity-60">
-            {loading ? '⏳' : '✅ Créer'}
+            {loading ? '⏳' : t('habit.create_btn')}
           </motion.button>
           <button type="button" onClick={onCancel}
             className="px-5 bg-gray-100 text-gray-600 font-bold rounded-2xl text-lg">
-            ✕
+            {t('habit.cancel_btn')}
           </button>
         </div>
       </form>

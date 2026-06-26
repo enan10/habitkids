@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "695977170693",
+    "project_id": "habitkids-cb822",
+    "storage_bucket": "habitkids-cb822.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:695977170693:android:572d6269cdcc975072496c",
+        "android_client_info": {
+          "package_name": "ma.habitkids.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkZSmS_HhY1b7BwfoiboIMNwaBrfwFI1k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

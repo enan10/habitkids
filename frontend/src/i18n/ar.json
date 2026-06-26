@@ -1,0 +1,158 @@
+{
+  "lang": "ar",
+  "dir": "rtl",
+
+  "nav": {
+    "accueil": "الرئيسية",
+    "habitudes": "العادات",
+    "recompenses": "المكافآت",
+    "profil": "الملف الشخصي"
+  },
+
+  "child": {
+    "greeting": "مرحباً {{name}} ! 👋",
+    "parent_btn": "الوالدين",
+    "missions_title": "🎯 مهامي اليوم",
+    "missions_count": "{{done}} / {{total}} منجزة",
+    "perfect_day": "يوم مثالي !",
+    "perfect_day_sub": "أنجزت كل شيء اليوم !",
+    "no_habits": "لا توجد عادات بعد !",
+    "no_habits_sub": "اطلب من والديك إضافة عادات",
+    "streak": "السلسلة الحالية",
+    "points": "النقاط المكتسبة",
+    "rewards": "المكافآت",
+    "motiv_perfect": "يوم مثالي !",
+    "motiv_progress": "أنت تتقدم بشكل رائع !",
+    "motiv_default": "أنت تقوم بعمل رائع !"
+  },
+
+  "time": {
+    "morning": "الصباح",
+    "afternoon": "الظهيرة",
+    "evening": "المساء",
+    "anytime": "دائماً",
+    "when": "🕐 متى ؟",
+    "when_hint": "يمكنك اختيار أكثر من وقت",
+    "times_per_day": "{{n}}x في اليوم"
+  },
+
+  "habit": {
+    "new": "✨ عادة جديدة",
+    "customize": "✏️ تخصيص — {{title}}",
+    "name_label": "الاسم",
+    "name_placeholder": "مثال: تنظيف الأسنان",
+    "category_label": "🏷️ الفئة",
+    "frequency_label": "📅 التكرار",
+    "points_label": "⭐ النقاط",
+    "create_btn": "✅ إنشاء",
+    "cancel_btn": "✕",
+    "no_day_selected": "⚠️ لم يتم اختيار أي يوم",
+    "freq_daily": "كل يوم",
+    "freq_weekly": "أيام معينة",
+    "freq_interval": "كل X أيام",
+    "freq_monthly": "مرة في الشهر",
+    "days_active": "الأيام النشطة :",
+    "repeat_every": "التكرار كل :",
+    "n_days": "{{n}} أيام",
+    "day_of_month": "اليوم __ من كل شهر :",
+    "school_days": "أيام الدراسة",
+    "weekend": "عطلة نهاية الأسبوع",
+    "custom": "مخصص",
+    "daily_active": "✅ عادة نشطة كل يوم",
+    "daily_sub": "الإثنين · الثلاثاء · الأربعاء · الخميس · الجمعة · السبت · الأحد",
+    "from_today": "ابتداءً من اليوم",
+    "err_no_day": "اختر يوماً واحداً على الأقل",
+    "err_generic": "خطأ"
+  },
+
+  "categories": {
+    "GENERAL":      "عام",
+    "HYGIENE":      "النظافة",
+    "EDUCATION":    "التعليم",
+    "SPORT":        "الرياضة",
+    "ALIMENTATION": "التغذية",
+    "SOMMEIL":      "النوم",
+    "CREATIVITE":   "الإبداع",
+    "MENAGE":       "المنزل",
+    "AUTONOMIE":    "الاستقلالية",
+    "NATURE":       "الطبيعة",
+    "SOCIAL":       "الاجتماعي",
+    "SECURITE":     "الأمان"
+  },
+
+  "parent": {
+    "today": "اليوم",
+    "this_week": "هذا الأسبوع",
+    "points": "النقاط",
+    "streak": "السلسلة",
+    "badges": "الشارات",
+    "today_habits": "عادات {{name}} — اليوم :",
+    "todo": "لم تُنجز بعد",
+    "done": "مُنجزة",
+    "day_progress": "تقدم اليوم",
+    "habits_done": "{{done}}/{{total}} عادة مُنجزة",
+    "see_all": "← عرض كل العادات",
+    "child_view": "← 👁️ عرض الطفل",
+    "change_day": "📅 تغيير اليوم",
+    "back_today": "🔄 اليوم",
+    "no_habits_day": "لا توجد عادات في هذا اليوم",
+    "add_btn": "+ إضافة",
+    "family_progress": "تقدم العائلة",
+    "skills_title": "🌱 المهارات المكتسبة",
+    "skills_sub": "بناءً على آخر 7 أيام",
+    "no_completions": "لم تُنجز أي عادة هذا الأسبوع",
+    "habits_count": "{{n}} عادة",
+    "habits_count_plural": "{{n}} عادات",
+    "select_btn": "☑️ تحديد",
+    "cancel_select": "إلغاء",
+    "select_all": "☑ تحديد الكل",
+    "deselect_all": "☐ إلغاء الكل",
+    "delete_selection": "🗑️ حذف",
+    "confirm_delete": "حذف {{n}} عادة(عادات) ؟",
+    "per_day_view": "📅 حسب اليوم",
+    "list_view": "📋 القائمة",
+    "all_categories": "الكل",
+    "quotidien": "يومي",
+    "active_child": "نشط"
+  },
+
+  "reward": {
+    "title": "المكافآت",
+    "preset_title": "مكافآت مقترحة",
+    "custom_title": "إنشاء مكافأة",
+    "name_label": "اسم المكافأة",
+    "name_placeholder": "مثال: نزهة في الحديقة",
+    "points_label": "النقاط المطلوبة",
+    "add_custom": "✏️ إنشاء مكافأتي",
+    "save_btn": "✅ حفظ",
+    "cancel_btn": "✕ إلغاء",
+    "no_rewards": "لا توجد مكافآت",
+    "no_rewards_sub": "أضف مكافآت لتحفيز طفلك",
+    "unlocked": "مفتوحة",
+    "pts": "نقطة"
+  },
+
+  "profile": {
+    "title": "الملف الشخصي والإعدادات",
+    "language": "اللغة",
+    "notifications": "الإشعارات",
+    "stats": "الإحصائيات",
+    "logout": "تسجيل الخروج",
+    "lang_fr": "Français",
+    "lang_ar": "العربية"
+  },
+
+  "skills": {
+    "autonomie": "الاستقلالية",
+    "discipline": "الانضباط",
+    "savoir": "المعرفة",
+    "empathie": "التعاطف",
+    "respect": "الاحترام"
+  },
+
+  "auth": {
+    "welcome": "مرحباً بك !",
+    "welcome_sub": "أنشئ ملف طفلك للبدء",
+    "parent_space": "👨‍👩‍👧 فضاء الوالدين"
+  }
+}

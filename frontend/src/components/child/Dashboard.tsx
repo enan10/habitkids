@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import CelebrationModal from './CelebrationModal'
 import BadgeEarnedModal from './BadgeEarnedModal'
 import { useHabits } from '../../hooks/useHabits'
@@ -10,10 +11,10 @@ import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
 
 const HABIT_SECTIONS = [
-  { key: 'MORNING',   label: 'Matin',           icon: '🌅', bg: 'bg-amber-50',  text: 'text-amber-700'  },
-  { key: 'AFTERNOON', label: 'Après-midi',       icon: '☀️', bg: 'bg-sky-100',   text: 'text-sky-700'    },
-  { key: 'EVENING',   label: 'Soir',             icon: '🌙', bg: 'bg-indigo-50', text: 'text-indigo-700' },
-  { key: 'ANYTIME',   label: 'Toute la journée', icon: '📌', bg: 'bg-gray-100',  text: 'text-gray-600'   },
+  { key: 'MORNING',   tKey: 'time.morning',   icon: '🌅', bg: 'bg-amber-50',  text: 'text-amber-700'  },
+  { key: 'AFTERNOON', tKey: 'time.afternoon', icon: '☀️', bg: 'bg-sky-100',   text: 'text-sky-700'    },
+  { key: 'EVENING',   tKey: 'time.evening',   icon: '🌙', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  { key: 'ANYTIME',   tKey: 'time.anytime',   icon: '📌', bg: 'bg-gray-100',  text: 'text-gray-600'   },
 ]
 
 interface Child {
@@ -44,6 +45,7 @@ interface Props {
 
 export default function Dashboard({ child, onChildUpdate }: Props) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { habits, loading, completeHabit, uncompleteHabit, isCompleted } = useHabits(child.id)
   const [childData, setChildData] = useState(child)
   const [celebration, setCelebration] = useState<CelebrationData | null>(null)
@@ -97,9 +99,9 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
   const completedCount = habits.filter(h => isCompleted(h.id)).length
 
   const motivData = () => {
-    if (completedCount === habits.length && habits.length > 0) return { emoji: '🏆', text: 'Journée parfaite !' }
-    if (completedCount > habits.length / 2) return { emoji: '⭐', text: 'Tu progresses super bien !' }
-    return { emoji: '💪', text: 'Tu fais un super travail !' }
+    if (completedCount === habits.length && habits.length > 0) return { emoji: '🏆', text: t('child.motiv_perfect') }
+    if (completedCount > habits.length / 2) return { emoji: '⭐', text: t('child.motiv_progress') }
+    return { emoji: '💪', text: t('child.motiv_default') }
   }
 
   // Only block render on very first load — re-fetches after completions must not show the spinner
@@ -136,7 +138,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
         <div className="flex items-center mb-4 relative z-10">
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
             className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
-            <span>👨‍👩‍👧</span> Parent
+            <span>👨‍👩‍👧</span> {t('child.parent_btn')}
           </motion.button>
         </div>
 
@@ -157,7 +159,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
           {/* Name + speech bubble */}
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-black text-gray-800 drop-shadow-sm">
-              Salut {childData.name} ! 👋
+              {t('child.greeting', { name: childData.name })}
             </h1>
             <div className="mt-2 bg-white/90 rounded-2xl px-3 py-2 shadow-sm inline-flex items-center gap-2 whitespace-nowrap">
               <span className="text-2xl leading-none">{motivData().emoji}</span>
@@ -172,9 +174,9 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
 
         {/* Section header */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-black text-gray-800">🎯 Mes missions du jour</h2>
+          <h2 className="text-base font-black text-gray-800">{t('child.missions_title')}</h2>
           <span className="bg-white text-gray-600 font-bold text-xs px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
-            {completedCount} / {habits.length} faites
+            {t('child.missions_count', { done: completedCount, total: habits.length })}
           </span>
         </div>
 
@@ -189,7 +191,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
                 <div key={section.key}>
                   {/* Section header */}
                   <div className={`flex items-center justify-between px-3 py-2 rounded-2xl mb-2 ${section.bg}`}>
-                    <span className={`font-black text-sm ${section.text}`}>{section.icon} {section.label}</span>
+                    <span className={`font-black text-sm ${section.text}`}>{section.icon} {t(section.tKey)}</span>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-white/70 ${section.text}`}>
                       {sectionDone}/{sectionHabits.length}
                     </span>
@@ -243,8 +245,8 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
         ) : (
           <div className="text-center py-12 bg-white rounded-3xl shadow-sm">
             <div className="text-5xl mb-3">🌱</div>
-            <p className="font-bold text-gray-500">Pas encore d'habitudes !</p>
-            <p className="text-sm text-gray-400">Demande à tes parents d'en ajouter</p>
+            <p className="font-bold text-gray-500">{t('child.no_habits')}</p>
+            <p className="text-sm text-gray-400">{t('child.no_habits_sub')}</p>
           </div>
         )}
 
@@ -256,8 +258,8 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
             className="mt-4 bg-gradient-to-r from-kids-teal to-kids-blue rounded-3xl p-5 text-center text-white shadow-xl"
           >
             <div className="text-4xl mb-1">🏆</div>
-            <p className="font-black text-xl">JOURNÉE PARFAITE !</p>
-            <p className="font-semibold opacity-80 text-sm">Tu as tout accompli aujourd'hui !</p>
+            <p className="font-black text-xl">{t('child.perfect_day')}</p>
+            <p className="font-semibold opacity-80 text-sm">{t('child.perfect_day_sub')}</p>
           </motion.div>
         )}
 
@@ -269,17 +271,17 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
         <div className="flex flex-col items-center gap-0.5 pr-3">
           <span className="text-2xl">🔥</span>
           <p className="text-xl font-black text-gray-800 leading-tight">{childData.streakDays}</p>
-          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Série actuelle</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">{t('child.streak')}</p>
         </div>
         <div className="flex flex-col items-center gap-0.5 px-3">
           <span className="text-2xl">⭐</span>
           <p className="text-xl font-black text-gray-800 leading-tight">{todayPoints}</p>
-          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Points gagnés</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">{t('child.points')}</p>
         </div>
         <div className="flex flex-col items-center gap-0.5 pl-3">
           <span className="text-2xl">🏆</span>
           <p className="text-xl font-black text-gray-800 leading-tight">{rewardsCount}</p>
-          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">Récompenses</p>
+          <p className="text-[11px] text-gray-500 font-semibold text-center leading-tight">{t('child.rewards')}</p>
         </div>
       </div>
 

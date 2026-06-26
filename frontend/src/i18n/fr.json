@@ -1,0 +1,158 @@
+{
+  "lang": "fr",
+  "dir": "ltr",
+
+  "nav": {
+    "accueil": "Accueil",
+    "habitudes": "Habitudes",
+    "recompenses": "Récompenses",
+    "profil": "Profil"
+  },
+
+  "child": {
+    "greeting": "Salut {{name}} ! 👋",
+    "parent_btn": "Parent",
+    "missions_title": "🎯 Mes missions du jour",
+    "missions_count": "{{done}} / {{total}} faites",
+    "perfect_day": "JOURNÉE PARFAITE !",
+    "perfect_day_sub": "Tu as tout accompli aujourd'hui !",
+    "no_habits": "Pas encore d'habitudes !",
+    "no_habits_sub": "Demande à tes parents d'en ajouter",
+    "streak": "Série actuelle",
+    "points": "Points gagnés",
+    "rewards": "Récompenses",
+    "motiv_perfect": "Journée parfaite !",
+    "motiv_progress": "Tu progresses super bien !",
+    "motiv_default": "Tu fais un super travail !"
+  },
+
+  "time": {
+    "morning": "Matin",
+    "afternoon": "Après-midi",
+    "evening": "Soir",
+    "anytime": "Toujours",
+    "when": "🕐 Quand ?",
+    "when_hint": "Tu peux sélectionner plusieurs moments",
+    "times_per_day": "{{n}}x par jour"
+  },
+
+  "habit": {
+    "new": "✨ Nouvelle habitude",
+    "customize": "✏️ Personnaliser — {{title}}",
+    "name_label": "Nom",
+    "name_placeholder": "Ex: Se brosser les dents",
+    "category_label": "🏷️ Catégorie",
+    "frequency_label": "📅 Fréquence",
+    "points_label": "⭐ Points",
+    "create_btn": "✅ Créer",
+    "cancel_btn": "✕",
+    "no_day_selected": "⚠️ Aucun jour sélectionné",
+    "freq_daily": "Tous les jours",
+    "freq_weekly": "Certains jours",
+    "freq_interval": "Tous les X jours",
+    "freq_monthly": "Une fois par mois",
+    "days_active": "Jours actifs :",
+    "repeat_every": "Répéter tous les :",
+    "n_days": "{{n}} jours",
+    "day_of_month": "Le __ de chaque mois :",
+    "school_days": "Jours scolaires",
+    "weekend": "Week-end",
+    "custom": "Personnalisé",
+    "daily_active": "✅ Habitude active tous les jours",
+    "daily_sub": "Lu · Ma · Me · Je · Ve · Sa · Di",
+    "from_today": "À partir d'aujourd'hui",
+    "err_no_day": "Sélectionnez au moins un jour",
+    "err_generic": "Erreur"
+  },
+
+  "categories": {
+    "GENERAL":      "Général",
+    "HYGIENE":      "Hygiène",
+    "EDUCATION":    "Éducation",
+    "SPORT":        "Sport",
+    "ALIMENTATION": "Alimentation",
+    "SOMMEIL":      "Sommeil",
+    "CREATIVITE":   "Créativité",
+    "MENAGE":       "Ménage",
+    "AUTONOMIE":    "Autonomie",
+    "NATURE":       "Nature",
+    "SOCIAL":       "Social",
+    "SECURITE":     "Sécurité"
+  },
+
+  "parent": {
+    "today": "Aujourd'hui",
+    "this_week": "Cette semaine",
+    "points": "Points",
+    "streak": "Série",
+    "badges": "Badges",
+    "today_habits": "Habitudes de {{name}} — aujourd'hui :",
+    "todo": "À faire",
+    "done": "Déjà réalisées",
+    "day_progress": "Progression du jour",
+    "habits_done": "{{done}}/{{total}} habitudes réalisées",
+    "see_all": "Voir toutes les habitudes →",
+    "child_view": "👁️ Vue enfant →",
+    "change_day": "📅 Changer de jour",
+    "back_today": "🔄 Aujourd'hui",
+    "no_habits_day": "Aucune habitude ce jour-là",
+    "add_btn": "+ Ajouter",
+    "family_progress": "Progression de la famille",
+    "skills_title": "🌱 Compétences développées",
+    "skills_sub": "Basé sur les 7 derniers jours",
+    "no_completions": "Aucune habitude réalisée cette semaine",
+    "habits_count": "{{n}} habitude",
+    "habits_count_plural": "{{n}} habitudes",
+    "select_btn": "☑️ Sélectionner",
+    "cancel_select": "Annuler",
+    "select_all": "☑ Tout sélectionner",
+    "deselect_all": "☐ Tout désélectionner",
+    "delete_selection": "🗑️ Supprimer",
+    "confirm_delete": "Supprimer {{n}} habitude(s) ?",
+    "per_day_view": "📅 Par jour",
+    "list_view": "📋 Liste",
+    "all_categories": "Toutes",
+    "quotidien": "Quotidien",
+    "active_child": "Actif"
+  },
+
+  "reward": {
+    "title": "Récompenses",
+    "preset_title": "Récompenses suggérées",
+    "custom_title": "Créer une récompense",
+    "name_label": "Nom de la récompense",
+    "name_placeholder": "Ex: Sortie au parc",
+    "points_label": "Points nécessaires",
+    "add_custom": "✏️ Créer la mienne",
+    "save_btn": "✅ Enregistrer",
+    "cancel_btn": "✕ Annuler",
+    "no_rewards": "Aucune récompense",
+    "no_rewards_sub": "Ajoutez des récompenses pour motiver votre enfant",
+    "unlocked": "Débloquée",
+    "pts": "pts"
+  },
+
+  "profile": {
+    "title": "Profil & Réglages",
+    "language": "Langue",
+    "notifications": "Notifications",
+    "stats": "Statistiques",
+    "logout": "Se déconnecter",
+    "lang_fr": "Français",
+    "lang_ar": "العربية"
+  },
+
+  "skills": {
+    "autonomie": "Autonomie",
+    "discipline": "Discipline",
+    "savoir": "Savoir",
+    "empathie": "Empathie",
+    "respect": "Respect"
+  },
+
+  "auth": {
+    "welcome": "Bienvenue !",
+    "welcome_sub": "Créez le profil de votre enfant pour commencer",
+    "parent_space": "👨‍👩‍👧 Espace Parent"
+  }
+}
