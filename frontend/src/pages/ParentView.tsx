@@ -70,58 +70,58 @@ const WEEK_DAYS = [
 ]
 
 const PRESET_HABITS = [
-  { title: 'Se brosser les dents',                  emoji: '🦷', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se laver les mains',                    emoji: '🧼', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Prendre une douche',                    emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se coiffer',                            emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
-  { title: 'Prendre ses médicaments',               emoji: '💊', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Porter ses sandales de maison',         emoji: '🩴', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Lire 15 minutes',                       emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire ses devoirs',                     emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Réviser ses leçons',                    emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Apprendre un mot nouveau',              emoji: '🔤', category: 'EDUCATION',    color: '#FF9F43', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire du sport 30 min',                 emoji: '🏃', category: 'SPORT',        color: '#1DD1A1', pointValue: 20, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Marcher 10 minutes',                    emoji: '🚶', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire des étirements',                  emoji: '🧘', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Manger des légumes',                    emoji: '🥗', category: 'ALIMENTATION', color: '#FECA57', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Boire 8 verres d\'eau',                 emoji: '💧', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Prendre le petit-déjeuner',             emoji: '🥣', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Limiter les sucreries',                 emoji: '🍬', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se coucher à l\'heure',                 emoji: '😴', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se lever tôt le matin',                 emoji: '🌅', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Éteindre les écrans à 20h',             emoji: '📵', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Dessiner ou colorier',                  emoji: '🎨', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Jouer d\'un instrument',                emoji: '🎵', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Faire son lit',                         emoji: '🛏️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ranger sa chambre',                     emoji: '🧹', category: 'MENAGE',       color: '#48DBFB', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ranger ses vêtements',                  emoji: '👕', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Aider ses parents à la maison',         emoji: '🏠', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Aider à mettre la table',               emoji: '🍽️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Arroser les plantes',                   emoji: '🌿', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [1,3,5] },
-  { title: 'Sortir dehors 20 min',                  emoji: '🌳', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Respecter la nature',                   emoji: '🌍', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Jeter les déchets à la poubelle',       emoji: '🗑️', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Dire merci et s\'il te plaît',          emoji: '🙏', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Saluer poliment les adultes',           emoji: '🤝', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Attendre son tour pour parler',         emoji: '🤫', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'S\'exprimer et écouter les autres',     emoji: '💬', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Céder sa place aux personnes âgées',   emoji: '🧓', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Appeler un ami ou la famille',          emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
-  { title: 'Utiliser le passage piéton',            emoji: '🚸', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ne jamais toucher l\'électricité ou le gaz', emoji: '⚡', category: 'SECURITE', color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Éviter les produits dangereux',         emoji: '⚠️', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ne pas se pencher aux fenêtres',        emoji: '🪟', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Ne pas jouer dans la rue',              emoji: '🛑', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se préparer tout seul le matin',        emoji: '🌅', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Préparer son cartable la veille',       emoji: '🎒', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4] },
-  { title: 'S\'habiller tout seul',                 emoji: '👕', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Choisir sa tenue du lendemain',         emoji: '👗', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Attacher ses lacets tout seul',         emoji: '👟', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Préparer son goûter',                   emoji: '🥪', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Débarrasser son assiette',              emoji: '🍽️', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { title: 'Se réveiller seul à l\'heure',          emoji: '⏰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
-  { title: 'Gérer son argent de poche',             emoji: '💰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [6] },
-  { title: 'Mettre son linge sale au panier',       emoji: '🧺', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.brush_teeth',           emoji: '🦷', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.wash_hands',            emoji: '🧼', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.shower',               emoji: '🚿', category: 'HYGIENE',      color: '#54A0FF', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.comb_hair',            emoji: '💇', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.take_medicine',        emoji: '💊', category: 'HYGIENE',      color: '#54A0FF', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.wear_slippers',        emoji: '🩴', category: 'HYGIENE',      color: '#54A0FF', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.read_15min',           emoji: '📖', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.do_homework',          emoji: '📚', category: 'EDUCATION',    color: '#FF9F43', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.study_lessons',        emoji: '✏️', category: 'EDUCATION',    color: '#FF9F43', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.learn_word',           emoji: '🔤', category: 'EDUCATION',    color: '#FF9F43', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.sport_30min',          emoji: '🏃', category: 'SPORT',        color: '#1DD1A1', pointValue: 20, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.walk_10min',           emoji: '🚶', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.stretching',           emoji: '🧘', category: 'SPORT',        color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.eat_vegetables',       emoji: '🥗', category: 'ALIMENTATION', color: '#FECA57', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.drink_water',          emoji: '💧', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.eat_breakfast',        emoji: '🥣', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.limit_sweets',         emoji: '🍬', category: 'ALIMENTATION', color: '#FECA57', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.sleep_ontime',         emoji: '😴', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.wake_up_early',        emoji: '🌅', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.no_screens_8pm',       emoji: '📵', category: 'SOMMEIL',      color: '#5F27CD', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.draw_color',           emoji: '🎨', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.play_instrument',      emoji: '🎵', category: 'CREATIVITE',   color: '#FF6B6B', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.make_bed',             emoji: '🛏️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.tidy_room',            emoji: '🧹', category: 'MENAGE',       color: '#48DBFB', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.fold_clothes',         emoji: '👕', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.help_parents',         emoji: '🏠', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.set_table',            emoji: '🍽️', category: 'MENAGE',       color: '#48DBFB', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.water_plants',         emoji: '🌿', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [1,3,5] },
+  { tKey: 'presets.go_outside',           emoji: '🌳', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.respect_nature',       emoji: '🌍', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.throw_trash',          emoji: '🗑️', category: 'NATURE',       color: '#1DD1A1', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.say_please_thanks',    emoji: '🙏', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.greet_adults',         emoji: '🤝', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.wait_turn',            emoji: '🤫', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.express_listen',       emoji: '💬', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.give_seat',            emoji: '🧓', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.call_family',          emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
+  { tKey: 'presets.use_crosswalk',        emoji: '🚸', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.no_electricity_gas',   emoji: '⚡', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.avoid_danger',         emoji: '⚠️', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.no_lean_window',       emoji: '🪟', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.no_play_street',       emoji: '🛑', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.prepare_alone_morning',emoji: '🌅', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.prep_bag',             emoji: '🎒', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4] },
+  { tKey: 'presets.dress_alone',          emoji: '👕', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.choose_outfit',        emoji: '👗', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.tie_shoes',            emoji: '👟', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.prep_snack',           emoji: '🥪', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.clear_plate',          emoji: '🍽️', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
+  { tKey: 'presets.wake_alone',           emoji: '⏰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4,5] },
+  { tKey: 'presets.manage_money',         emoji: '💰', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [6] },
+  { tKey: 'presets.dirty_laundry',        emoji: '🧺', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 5,  daysOfWeek: [0,1,2,3,4,5,6] },
 ]
 
 function getCategoryInfo(id: string) {
@@ -514,7 +514,7 @@ export default function ParentView() {
   const openPresetForm = (preset: typeof PRESET_HABITS[0]) => {
     const days = addForDay !== null ? [addForDay] : preset.daysOfWeek
     setPresetDefaults({
-      title:      preset.title,
+      title:      t(preset.tKey),
       emoji:      preset.emoji,
       color:      preset.color,
       category:   preset.category,
@@ -681,13 +681,15 @@ export default function ParentView() {
                     .filter(p => suggestCatFilter === 'ALL' || p.category === suggestCatFilter)
                     .map(preset => {
                       const cat = getCategoryInfo(preset.category)
-                      const alreadyAdded = (activeChild?.habits ?? []).some((h: any) => h.title === preset.title)
+                      const alreadyAdded = (activeChild?.habits ?? []).some((h: any) =>
+                        h.emoji === preset.emoji && (h.category || 'GENERAL') === preset.category
+                      )
                       return (
-                        <div key={preset.title}
+                        <div key={preset.tKey}
                           className={`flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 ${alreadyAdded ? 'opacity-50' : ''}`}>
                           <span className="text-xl">{preset.emoji}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-800 text-sm truncate">{preset.title}</p>
+                            <p className="font-bold text-gray-800 text-sm truncate">{t(preset.tKey)}</p>
                             <p className="text-xs text-gray-400">{cat.emoji} {t('categories.' + cat.id)} · ⭐ {preset.pointValue} pts</p>
                           </div>
                           {alreadyAdded
