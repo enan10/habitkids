@@ -113,7 +113,37 @@
     "list_view": "📋 Liste",
     "all_categories": "Toutes",
     "quotidien": "Quotidien",
-    "active_child": "Actif"
+    "active_child":          "Actif",
+    "all_children_progress": "Progrès de mes enfants",
+    "child_progress":        "Progrès de {{name}}",
+    "my_children":           "Mes enfants",
+    "my_profile":            "Mon profil",
+    "go_premium":            "Passer Premium",
+    "add_child":             "Ajouter un enfant",
+    "no_children":           "Ajoutez votre premier enfant !",
+    "add_habit_title":       "💡 Ajouter une habitude",
+    "create_habit_custom":   "Créer une habitude personnalisée",
+    "create_habit_sub":      "Fréquence, jours, récurrence mensuelle…",
+    "no_habits_yet":         "Pas encore d'habitudes",
+    "see_all_btn":           "Voir tous →",
+    "greeting_morning":      "Bonjour",
+    "greeting_afternoon":    "Bonne après-midi",
+    "greeting_evening":      "Bonsoir",
+    "age_one":               "{{count}} an",
+    "age_other":             "{{count}} ans",
+    "completed_chart":       "complétées",
+    "in_progress_chart":     "en cours",
+    "missed_chart":          "manquées",
+    "delete_habit_btn":      "🗑️ Supprimer",
+    "no_day_habits":         "Aucune habitude ce jour",
+    "today_label":           "aujourd'hui",
+    "this_day_label":        "ce jour",
+    "today_habits_title":    "Habitudes de {{name}} — {{when}} :",
+    "level_short":           "Niv.",
+    "child_btn_view":        "Vue enfant",
+    "notif_panel_title":     "🔔 Rappels",
+    "delete_child_confirm":  "⚠️ Supprimer cet enfant ? Toutes ses données seront perdues.",
+    "habits_n":              "{{n}} habitude{{s}}"
   },
 
   "reward": {
@@ -129,7 +159,18 @@
     "no_rewards": "Aucune récompense",
     "no_rewards_sub": "Ajoutez des récompenses pour motiver votre enfant",
     "unlocked": "Débloquée",
-    "pts": "pts"
+    "pts":            "pts",
+    "add_title":      "🎁 Ajouter une récompense",
+    "new_reward":     "✨ Nouvelle récompense",
+    "create_custom":  "Créer une récompense personnalisée",
+    "create_custom_sub": "Choisir l'emoji, le nom et les points",
+    "customize_btn":  "✏️ Perso.",
+    "add_reward_btn": "✅ Ajouter cette récompense",
+    "unlock_btn":     "Débloquer",
+    "unlocked_label": "✅ Débloqué",
+    "other_value":    "Autre valeur…",
+    "pts_label":      "⭐ {{n}} points",
+    "add_shortbtn":   "+ Ajouter"
   },
 
   "profile": {
@@ -138,8 +179,19 @@
     "notifications": "Notifications",
     "stats": "Statistiques",
     "logout": "Se déconnecter",
-    "lang_fr": "Français",
-    "lang_ar": "العربية"
+    "lang_fr":          "Français",
+    "lang_ar":          "العربية",
+    "reminders":        "🔔 Rappels",
+    "change_password":  "🔑 Changer le mot de passe",
+    "current_password": "Mot de passe actuel",
+    "new_password":     "Nouveau mot de passe (min. 8 car.)",
+    "confirm_password": "Confirmer le nouveau mot de passe",
+    "password_mismatch":"Les mots de passe ne correspondent pas",
+    "password_min":     "Minimum 8 caractères",
+    "password_updated": "Mot de passe mis à jour !",
+    "saving":           "⏳ Enregistrement...",
+    "save_password":    "✅ Enregistrer",
+    "premium_badge":    "✨ Premium"
   },
 
   "skills": {
@@ -154,6 +206,66 @@
     "welcome": "Bienvenue !",
     "welcome_sub": "Créez le profil de votre enfant pour commencer",
     "parent_space": "👨‍👩‍👧 Espace Parent"
+  },
+
+  "common": {
+    "cancel": "Annuler",
+    "save": "✓ Sauvegarder",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "saving": "⏳ Enregistrement...",
+    "error": "Erreur",
+    "confirm_btn": "Confirmer"
+  },
+
+  "days": {
+    "monday":    "Lundi",
+    "tuesday":   "Mardi",
+    "wednesday": "Mercredi",
+    "thursday":  "Jeudi",
+    "friday":    "Vendredi",
+    "saturday":  "Samedi",
+    "sunday":    "Dimanche",
+    "short_0":   "Di",
+    "short_1":   "Lu",
+    "short_2":   "Ma",
+    "short_3":   "Me",
+    "short_4":   "Je",
+    "short_5":   "Ve",
+    "short_6":   "Sa"
+  },
+
+  "modal": {
+    "edit_profile":          "Modifier le profil",
+    "new_child":             "👶 Nouvel enfant",
+    "first_name":            "Prénom",
+    "first_name_ph":         "Prénom *",
+    "gender":                "Sexe",
+    "boy":                   "👦 Garçon",
+    "girl":                  "👧 Fille",
+    "birth_date":            "Date de naissance",
+    "class_label":           "Classe",
+    "class_ph":              "Ex : CM1, 6ème, Maternelle…",
+    "class_ph_short":        "Ex: CM1",
+    "level":                 "Niveau",
+    "xp_total":              "XP total",
+    "streak":                "Série",
+    "save_btn":              "✓ Sauvegarder",
+    "add_btn":               "✓ Ajouter",
+    "cancel_btn":            "Annuler",
+    "delete_child_confirm":  "⚠️ Supprimer cet enfant ? Toutes ses données seront perdues.",
+    "save_photo_error":      "❌ Erreur : photo non sauvegardée. Vérifiez votre connexion.",
+    "save_profile_error":    "Erreur lors de la sauvegarde"
+  },
+
+  "preset_rewards": {
+    "choose_dinner":  "Choisir le dîner du soir",
+    "park_outing":    "Sortie au parc",
+    "special_time":   "Temps spécial avec papa/maman",
+    "family_movie":   "Film familial",
+    "game_together":  "Un jeu ensemble",
+    "small_surprise": "Une petite surprise",
+    "buy_toy":        "Acheter un jouet"
   },
 
   "presets": {

@@ -113,7 +113,37 @@
     "list_view": "📋 القائمة",
     "all_categories": "الكل",
     "quotidien": "يومي",
-    "active_child": "نشط"
+    "active_child":          "نشط",
+    "all_children_progress": "تقدم أطفالي",
+    "child_progress":        "تقدم {{name}}",
+    "my_children":           "أطفالي",
+    "my_profile":            "ملفي الشخصي",
+    "go_premium":            "الترقية إلى بريميوم",
+    "add_child":             "إضافة طفل",
+    "no_children":           "أضف طفلك الأول !",
+    "add_habit_title":       "💡 إضافة عادة",
+    "create_habit_custom":   "إنشاء عادة مخصصة",
+    "create_habit_sub":      "التكرار، الأيام، التكرار الشهري…",
+    "no_habits_yet":         "لا توجد عادات بعد",
+    "see_all_btn":           "← عرض الكل",
+    "greeting_morning":      "صباح الخير",
+    "greeting_afternoon":    "مساء الخير",
+    "greeting_evening":      "مساء الخير",
+    "age_one":               "{{count}} سنة",
+    "age_other":             "{{count}} سنة",
+    "completed_chart":       "مُنجزة",
+    "in_progress_chart":     "قيد التنفيذ",
+    "missed_chart":          "فائتة",
+    "delete_habit_btn":      "🗑️ حذف",
+    "no_day_habits":         "لا توجد عادات في هذا اليوم",
+    "today_label":           "اليوم",
+    "this_day_label":        "هذا اليوم",
+    "today_habits_title":    "عادات {{name}} — {{when}} :",
+    "level_short":           "م.",
+    "child_btn_view":        "عرض الطفل",
+    "notif_panel_title":     "🔔 التذكيرات",
+    "delete_child_confirm":  "⚠️ حذف هذا الطفل ؟ ستُفقد جميع بياناته.",
+    "habits_n":              "{{n}} عادة"
   },
 
   "reward": {
@@ -129,7 +159,18 @@
     "no_rewards": "لا توجد مكافآت",
     "no_rewards_sub": "أضف مكافآت لتحفيز طفلك",
     "unlocked": "مفتوحة",
-    "pts": "نقطة"
+    "pts":            "نقطة",
+    "add_title":      "🎁 إضافة مكافأة",
+    "new_reward":     "✨ مكافأة جديدة",
+    "create_custom":  "إنشاء مكافأة مخصصة",
+    "create_custom_sub": "اختر الرمز والاسم والنقاط",
+    "customize_btn":  "✏️ تخصيص",
+    "add_reward_btn": "✅ إضافة هذه المكافأة",
+    "unlock_btn":     "فتح",
+    "unlocked_label": "✅ مفتوحة",
+    "other_value":    "قيمة أخرى…",
+    "pts_label":      "⭐ {{n}} نقطة",
+    "add_shortbtn":   "+ إضافة"
   },
 
   "profile": {
@@ -138,8 +179,19 @@
     "notifications": "الإشعارات",
     "stats": "الإحصائيات",
     "logout": "تسجيل الخروج",
-    "lang_fr": "Français",
-    "lang_ar": "العربية"
+    "lang_fr":          "Français",
+    "lang_ar":          "العربية",
+    "reminders":        "🔔 التذكيرات",
+    "change_password":  "🔑 تغيير كلمة المرور",
+    "current_password": "كلمة المرور الحالية",
+    "new_password":     "كلمة المرور الجديدة (8 أحرف على الأقل)",
+    "confirm_password": "تأكيد كلمة المرور الجديدة",
+    "password_mismatch":"كلمتا المرور غير متطابقتين",
+    "password_min":     "8 أحرف على الأقل",
+    "password_updated": "تم تحديث كلمة المرور !",
+    "saving":           "⏳ جارٍ الحفظ...",
+    "save_password":    "✅ حفظ",
+    "premium_badge":    "✨ بريميوم"
   },
 
   "skills": {
@@ -154,6 +206,66 @@
     "welcome": "مرحباً بك !",
     "welcome_sub": "أنشئ ملف طفلك للبدء",
     "parent_space": "👨‍👩‍👧 فضاء الوالدين"
+  },
+
+  "common": {
+    "cancel":       "إلغاء",
+    "save":         "✓ حفظ",
+    "delete":       "حذف",
+    "add":          "إضافة",
+    "saving":       "⏳ جارٍ الحفظ...",
+    "error":        "خطأ",
+    "confirm_btn":  "تأكيد"
+  },
+
+  "days": {
+    "monday":    "الإثنين",
+    "tuesday":   "الثلاثاء",
+    "wednesday": "الأربعاء",
+    "thursday":  "الخميس",
+    "friday":    "الجمعة",
+    "saturday":  "السبت",
+    "sunday":    "الأحد",
+    "short_0":   "أح",
+    "short_1":   "إث",
+    "short_2":   "ثل",
+    "short_3":   "أر",
+    "short_4":   "خم",
+    "short_5":   "جم",
+    "short_6":   "سب"
+  },
+
+  "modal": {
+    "edit_profile":         "تعديل الملف الشخصي",
+    "new_child":            "👶 طفل جديد",
+    "first_name":           "الاسم",
+    "first_name_ph":        "الاسم *",
+    "gender":               "الجنس",
+    "boy":                  "👦 ولد",
+    "girl":                 "👧 بنت",
+    "birth_date":           "تاريخ الميلاد",
+    "class_label":          "الصف الدراسي",
+    "class_ph":             "مثال : السنة الأولى، الثانية…",
+    "class_ph_short":       "مثال: الأول",
+    "level":                "المستوى",
+    "xp_total":             "مجموع XP",
+    "streak":               "السلسلة",
+    "save_btn":             "✓ حفظ",
+    "add_btn":              "✓ إضافة",
+    "cancel_btn":           "إلغاء",
+    "delete_child_confirm": "⚠️ حذف هذا الطفل ؟ ستُفقد جميع بياناته.",
+    "save_photo_error":     "❌ خطأ : لم يتم حفظ الصورة. تحقق من اتصالك.",
+    "save_profile_error":   "خطأ في الحفظ"
+  },
+
+  "preset_rewards": {
+    "choose_dinner":  "اختيار عشاء الليلة",
+    "park_outing":    "نزهة في الحديقة",
+    "special_time":   "وقت خاص مع الوالدين",
+    "family_movie":   "فيلم عائلي",
+    "game_together":  "لعبة معاً",
+    "small_surprise": "مفاجأة صغيرة",
+    "buy_toy":        "شراء لعبة"
   },
 
   "presets": {

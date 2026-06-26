@@ -60,13 +60,13 @@ const CATEGORY_SKILLS: Record<string, string[]> = {
 }
 
 const WEEK_DAYS = [
-  { label: 'Lundi',    short: 'Lu', day: 1 },
-  { label: 'Mardi',    short: 'Ma', day: 2 },
-  { label: 'Mercredi', short: 'Me', day: 3 },
-  { label: 'Jeudi',    short: 'Je', day: 4 },
-  { label: 'Vendredi', short: 'Ve', day: 5 },
-  { label: 'Samedi',   short: 'Sa', day: 6 },
-  { label: 'Dimanche', short: 'Di', day: 0 },
+  { tKey: 'days.monday',    shortKey: 'days.short_1', day: 1 },
+  { tKey: 'days.tuesday',   shortKey: 'days.short_2', day: 2 },
+  { tKey: 'days.wednesday', shortKey: 'days.short_3', day: 3 },
+  { tKey: 'days.thursday',  shortKey: 'days.short_4', day: 4 },
+  { tKey: 'days.friday',    shortKey: 'days.short_5', day: 5 },
+  { tKey: 'days.saturday',  shortKey: 'days.short_6', day: 6 },
+  { tKey: 'days.sunday',    shortKey: 'days.short_0', day: 0 },
 ]
 
 const PRESET_HABITS = [
@@ -147,6 +147,7 @@ function isHabitDueOnDate(habit: any, date: string): boolean {
 }
 
 function DonutChart({ completed, inProgress, missed }: { completed: number; inProgress: number; missed: number }) {
+  const { t } = useTranslation()
   const r = 36
   const circ = 2 * Math.PI * r
   const total = completed + inProgress + missed
@@ -182,9 +183,9 @@ function DonutChart({ completed, inProgress, missed }: { completed: number; inPr
         <text x="44" y="49" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#374151">{pct}%</text>
       </svg>
       <div className="flex flex-col gap-0.5 text-xs mt-1 w-full">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block flex-shrink-0" />{completed} complétées</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block flex-shrink-0" />{inProgress} en cours</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block flex-shrink-0" />{missed} manquées</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block flex-shrink-0" />{completed} {t('parent.completed_chart')}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-400 inline-block flex-shrink-0" />{inProgress} {t('parent.in_progress_chart')}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block flex-shrink-0" />{missed} {t('parent.missed_chart')}</span>
       </div>
     </div>
   )
@@ -230,7 +231,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
         <div className="flex-1 min-w-0">
           <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
           <p className="text-xs text-gray-400">
-            {cat.emoji} {t('categories.' + cat.id)} · {(habit.daysOfWeek ?? []).length === 7 ? 'Quotidien' : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => ['Di','Lu','Ma','Me','Je','Ve','Sa'][d]).join(' ')}
+            {cat.emoji} {t('categories.' + cat.id)} · {(habit.daysOfWeek ?? []).length === 7 ? t('parent.quotidien') : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => t('days.short_' + d)).join(' ')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -247,7 +248,7 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
         <div className="absolute right-3 top-10 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
           <button onClick={() => { onDelete(); setMenuOpen(false) }}
             className="flex items-center gap-2 px-4 py-3 text-red-500 font-bold text-sm hover:bg-red-50 w-full">
-            🗑️ Supprimer
+            {t('parent.delete_habit_btn')}
           </button>
         </div>
       )}
@@ -343,9 +344,9 @@ export default function ParentView() {
     const d = new Date(Date.now() - (6 - i) * 86400000)
     return {
       date: d.toISOString().split('T')[0],
-      label: ['Di','Lu','Ma','Me','Je','Ve','Sa'][d.getDay()],
+      label: t('days.short_' + d.getDay()),
     }
-  }), [])
+  }), [i18n.language])
 
   const fetchChildren = useCallback(async () => {
     const res = await api.get('/children')
@@ -436,7 +437,7 @@ export default function ParentView() {
   const getAge = (birthDate?: string) => {
     if (!birthDate) return null
     const age = Math.floor((Date.now() - new Date(birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    return `${age} an${age > 1 ? 's' : ''}`
+    return t('parent.age', { count: age, defaultValue: `${age}` })
   }
 
   // Nombre de rappels en attente pour le badge cloche
@@ -494,7 +495,7 @@ export default function ParentView() {
 
   const deleteSelectedHabits = async () => {
     if (selectedHabitIds.size === 0) return
-    if (!confirm(`Supprimer ${selectedHabitIds.size} habitude${selectedHabitIds.size > 1 ? 's' : ''} ?`)) return
+    if (!confirm(t('parent.confirm_delete', { n: selectedHabitIds.size }))) return
     await Promise.all([...selectedHabitIds].map(id => api.delete(`/habits/${id}`)))
     setSelectedHabitIds(new Set())
     setSelectionMode(false)
@@ -543,7 +544,7 @@ export default function ParentView() {
       if (activeId) fetchRewards(activeId)
     } catch (err: any) {
       if (err.response?.data?.upgrade) { setShowRewardPanel(false); setShowUpgrade(true) }
-      else alert(err.response?.data?.error || 'Erreur')
+      else alert(err.response?.data?.error || t('common.error'))
     }
   }
 
@@ -578,7 +579,7 @@ export default function ParentView() {
       setEditingChildProfile(null)
       fetchChildren()
     } catch {
-      alert('Erreur lors de la sauvegarde')
+      alert(t('modal.save_profile_error'))
     }
   }
 
@@ -590,8 +591,8 @@ export default function ParentView() {
   const submitChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setPwError('')
-    if (pwForm.next !== pwForm.confirm) { setPwError('Les mots de passe ne correspondent pas'); return }
-    if (pwForm.next.length < 8) { setPwError('Minimum 8 caractères'); return }
+    if (pwForm.next !== pwForm.confirm) { setPwError(t('profile.password_mismatch')); return }
+    if (pwForm.next.length < 8) { setPwError(t('profile.password_min')); return }
     setPwLoading(true)
     try {
       await api.patch('/auth/password', { currentPassword: pwForm.current, newPassword: pwForm.next })
@@ -599,7 +600,7 @@ export default function ParentView() {
       setPwForm({ current: '', next: '', confirm: '' })
       setTimeout(() => { setShowChangePassword(false); setPwSuccess(false) }, 1800)
     } catch (err: any) {
-      setPwError(err.response?.data?.error || 'Erreur')
+      setPwError(err.response?.data?.error || t('common.error'))
     } finally {
       setPwLoading(false)
     }
@@ -607,9 +608,9 @@ export default function ParentView() {
 
   const greeting = () => {
     const h = new Date().getHours()
-    if (h < 12) return 'Bonjour'
-    if (h < 18) return 'Bonne après-midi'
-    return 'Bonsoir'
+    if (h < 12) return t('parent.greeting_morning')
+    if (h < 18) return t('parent.greeting_afternoon')
+    return t('parent.greeting_evening')
   }
 
   // ── Suggestions panel (modal overlay) ──────────────────────────────────────
@@ -631,8 +632,8 @@ export default function ParentView() {
                 )}
                 <span className="font-black text-gray-800 text-base">
                   {showCustomForm
-                    ? presetDefaults?.title ? `✏️ ${presetDefaults.title}` : '✨ Nouvelle habitude'
-                    : '💡 Ajouter une habitude'}
+                    ? presetDefaults?.title ? t('habit.customize', { title: presetDefaults.title }) : t('habit.new')
+                    : t('parent.add_habit_title')}
                 </span>
               </div>
               <button onClick={closeSuggestions}
@@ -655,8 +656,8 @@ export default function ParentView() {
                   className="flex items-center gap-3 w-full bg-gradient-to-r from-kids-orange to-orange-400 text-white rounded-2xl px-4 py-3 mb-3 font-bold text-sm shadow-md flex-shrink-0">
                   <span className="text-xl">✏️</span>
                   <div className="text-left">
-                    <p className="font-black">Créer une habitude personnalisée</p>
-                    <p className="text-xs opacity-80">Fréquence, jours, récurrence mensuelle…</p>
+                    <p className="font-black">{t('parent.create_habit_custom')}</p>
+                    <p className="text-xs opacity-80">{t('parent.create_habit_sub')}</p>
                   </div>
                   <span className="ml-auto text-lg">→</span>
                 </button>
@@ -665,7 +666,7 @@ export default function ParentView() {
                 <div className="flex gap-2 mb-3 overflow-x-auto pb-1 flex-shrink-0">
                   <button onClick={() => setSuggestCatFilter('ALL')}
                     className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${suggestCatFilter === 'ALL' ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-500 border-gray-200'}`}>
-                    Tous
+                    {t('parent.all_categories')}
                   </button>
                   {CATEGORIES.map(cat => (
                     <button key={cat.id} onClick={() => setSuggestCatFilter(cat.id)}
@@ -761,7 +762,7 @@ export default function ParentView() {
                   <p className={`font-black text-sm ${isActive ? 'text-kids-orange' : 'text-gray-800'}`}>{child.name}</p>
                   <p className="text-xs text-gray-400">{[age, child.classe].filter(Boolean).join(' • ') || ' '}</p>
                   {isActive && (
-                    <span className="text-[10px] bg-kids-orange text-white font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block">Actif</span>
+                    <span className="text-[10px] bg-kids-orange text-white font-bold px-1.5 py-0.5 rounded-full mt-0.5 inline-block">{t('parent.active_child')}</span>
                   )}
                 </div>
               </button>
@@ -772,7 +773,7 @@ export default function ParentView() {
             className="flex-shrink-0 flex items-center gap-2 p-3 rounded-2xl border-2 border-dashed border-gray-200 bg-white text-gray-400"
           >
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl">+</div>
-            <p className="font-bold text-xs whitespace-nowrap">Ajouter<br/>un enfant</p>
+            <p className="font-bold text-xs whitespace-nowrap">{t('parent.add_child')}</p>
           </button>
         </div>
 
@@ -780,18 +781,18 @@ export default function ParentView() {
         <div className="flex justify-end">
           <button onClick={() => navigate('/child')}
             className="flex items-center gap-1.5 text-xs text-kids-teal font-bold bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-100">
-            👁️ Vue enfant →
+            {t('parent.child_view')}
           </button>
         </div>
 
         {/* 5-col stats */}
         <div className="grid grid-cols-5 gap-1.5">
           {[
-            { icon: '⭐', value: activeChild.xp,                            label: 'Points',        color: 'text-yellow-500' },
-            { icon: '🔥', value: activeChild.streakDays,                    label: 'Série',         color: 'text-orange-500' },
-            { icon: '🏆', value: badgesCount,                               label: 'Badges',        color: 'text-purple-500' },
-            { icon: '📈', value: `${weeklyPctReal}%`,                       label: 'Cette semaine', color: 'text-green-500'  },
-            { icon: '🎯', value: `${viewDone.length}/${viewHabits.length}`, label: isToday ? "Aujourd'hui" : 'Ce jour', color: 'text-blue-500' },
+            { icon: '⭐', value: activeChild.xp,                            label: t('parent.points'),      color: 'text-yellow-500' },
+            { icon: '🔥', value: activeChild.streakDays,                    label: t('parent.streak'),      color: 'text-orange-500' },
+            { icon: '🏆', value: badgesCount,                               label: t('parent.badges'),      color: 'text-purple-500' },
+            { icon: '📈', value: `${weeklyPctReal}%`,                       label: t('parent.this_week'),   color: 'text-green-500'  },
+            { icon: '🎯', value: `${viewDone.length}/${viewHabits.length}`, label: isToday ? t('parent.today_label') : t('parent.this_day_label'), color: 'text-blue-500' },
           ].map(s => (
             <div key={s.label} className="bg-white rounded-2xl p-2 shadow-sm border border-gray-100 flex flex-col items-center text-center">
               <span className="text-sm">{s.icon}</span>
@@ -807,7 +808,7 @@ export default function ParentView() {
             <div className="flex items-start justify-between gap-2 mb-3">
               <div>
                 <p className="font-black text-gray-800 text-sm leading-snug">
-                  Habitudes de {activeChild.name} — {isToday ? "aujourd'hui" : 'ce jour'} :
+                  {t('parent.today_habits_title', { name: activeChild.name, when: isToday ? t('parent.today_label') : t('parent.this_day_label') })}
                 </p>
                 <p className="text-xs text-gray-400 mt-0.5">{dateFormatted}</p>
               </div>
@@ -816,7 +817,7 @@ export default function ParentView() {
                 <button className={`flex items-center gap-1 text-xs font-bold px-2 py-1.5 rounded-xl border pointer-events-none ${
                   isToday ? 'text-gray-500 bg-gray-50 border-gray-200' : 'text-kids-orange bg-orange-50 border-kids-orange'
                 }`}>
-                  {isToday ? '📅 Changer de jour' : '🔄 Aujourd\'hui'}
+                  {isToday ? t('parent.change_day') : t('parent.back_today')}
                 </button>
                 <input
                   type="date"
@@ -830,7 +831,7 @@ export default function ParentView() {
             {viewHabits.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-gray-600">Progression du jour</span>
+                  <span className="text-xs font-bold text-gray-600">{t('parent.day_progress')}</span>
                   <span className="text-xs font-black text-green-600">{progressPct}%</span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5">
@@ -842,7 +843,7 @@ export default function ParentView() {
                   />
                 </div>
                 <p className="text-xs text-gray-400 text-right mt-1">
-                  {viewDone.length}/{viewHabits.length} habitudes réalisées
+                  {t('parent.habits_done', { done: viewDone.length, total: viewHabits.length })}
                 </p>
               </div>
             )}
@@ -851,7 +852,7 @@ export default function ParentView() {
           {viewTodo.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-orange-50">
-                <p className="text-xs font-black text-kids-orange">À faire ({viewTodo.length})</p>
+                <p className="text-xs font-black text-kids-orange">{t('parent.todo')} ({viewTodo.length})</p>
               </div>
               {viewTodo.map((habit: any) => (
                 <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50">
@@ -867,7 +868,7 @@ export default function ParentView() {
           {viewDone.length > 0 && (
             <div>
               <div className="px-4 py-2 bg-green-50">
-                <p className="text-xs font-black text-green-600">Déjà réalisées ({viewDone.length})</p>
+                <p className="text-xs font-black text-green-600">{t('parent.done')} ({viewDone.length})</p>
               </div>
               {viewDone.map((habit: any) => (
                 <div key={habit.id} className="flex items-center gap-3 px-4 py-3 border-t border-gray-50 opacity-60">
@@ -885,10 +886,10 @@ export default function ParentView() {
           {viewHabits.length === 0 && (
             <div className="text-center py-8 px-4">
               <p className="text-3xl mb-2">🌱</p>
-              <p className="text-sm text-gray-400 font-semibold">Aucune habitude ce jour-là</p>
+              <p className="text-sm text-gray-400 font-semibold">{t('parent.no_habits_day')}</p>
               <button onClick={() => setShowSuggestions(true)}
                 className="mt-3 bg-kids-teal text-white font-bold px-4 py-2 rounded-xl text-sm">
-                + Ajouter
+                {t('parent.add_btn')}
               </button>
             </div>
           )}
@@ -897,12 +898,12 @@ export default function ParentView() {
             <div className="flex border-t border-gray-100">
               <button onClick={() => setNavTab('habitudes')}
                 className="flex-1 py-3 text-xs text-kids-orange font-bold text-center">
-                Voir toutes les habitudes →
+                {t('parent.see_all')}
               </button>
               <div className="w-px bg-gray-100" />
               <button onClick={() => navigate('/child')}
                 className="flex-1 py-3 text-xs text-kids-teal font-bold text-center">
-                👁️ Vue enfant →
+                {t('parent.child_view')}
               </button>
             </div>
           )}
@@ -924,8 +925,8 @@ export default function ParentView() {
             <div className="bg-white rounded-2xl shadow-sm p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h3 className="font-black text-gray-800 text-sm">🌱 Compétences développées</h3>
-                  <p className="text-xs text-gray-400">Basé sur les 7 derniers jours</p>
+                  <h3 className="font-black text-gray-800 text-sm">{t('parent.skills_title')}</h3>
+                  <p className="text-xs text-gray-400">{t('parent.skills_sub')}</p>
                 </div>
               </div>
               {hasData ? (
@@ -956,7 +957,7 @@ export default function ParentView() {
               ) : (
                 <div className="text-center py-4">
                   <p className="text-3xl mb-1">🌱</p>
-                  <p className="text-xs text-gray-400 font-semibold">Aucune habitude réalisée cette semaine</p>
+                  <p className="text-xs text-gray-400 font-semibold">{t('parent.no_completions')}</p>
                 </div>
               )}
             </div>
@@ -967,10 +968,10 @@ export default function ParentView() {
         {children.length > 1 && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-black text-gray-800 text-sm">Progression de la famille</h3>
+              <h3 className="font-black text-gray-800 text-sm">{t('parent.family_progress')}</h3>
               <button onClick={() => setNavTab('habitudes')}
                 className="text-xs text-kids-orange font-bold">
-                Voir tous →
+                {t('parent.see_all_btn')}
               </button>
             </div>
             <div className={`grid gap-4 ${children.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
@@ -1003,8 +1004,8 @@ export default function ParentView() {
                     </div>
                     <p className="text-[10px] text-gray-400">
                       {child.id === activeId
-                        ? `${childDone}/${childTotal} habitudes réalisées`
-                        : `${childTotal} habitudes`}
+                        ? t('parent.habits_done', { done: childDone, total: childTotal })
+                        : t('parent.habits_n', { n: childTotal, s: childTotal > 1 ? 's' : '' })}
                     </p>
                   </button>
                 )
@@ -1024,8 +1025,8 @@ export default function ParentView() {
       <div>
         <div className="flex justify-between items-center mb-3">
           <div>
-            <h3 className="font-black text-gray-700">Habitudes</h3>
-            <p className="text-xs text-gray-400">{activeChild.habits?.length ?? 0} habitude{(activeChild.habits?.length ?? 0) !== 1 ? 's' : ''}</p>
+            <h3 className="font-black text-gray-700">{t('nav.habitudes')}</h3>
+            <p className="text-xs text-gray-400">{t('parent.habits_n', { n: activeChild.habits?.length ?? 0, s: (activeChild.habits?.length ?? 0) !== 1 ? 's' : '' })}</p>
           </div>
           <div className="flex gap-2 items-center">
             {!selectionMode ? (
@@ -1033,24 +1034,24 @@ export default function ParentView() {
                 <button
                   onClick={() => setHabitsView(habitsView === 'list' ? 'parjour' : 'list')}
                   className="text-xs text-gray-400 font-bold px-3 py-2 bg-white rounded-xl shadow-sm">
-                  {habitsView === 'list' ? '📅 Par jour' : '📋 Liste'}
+                  {habitsView === 'list' ? t('parent.per_day_view') : t('parent.list_view')}
                 </button>
                 <button
                   onClick={() => { setSelectionMode(true); setSelectedHabitIds(new Set()) }}
                   className="text-xs text-gray-500 font-bold px-3 py-2 bg-white rounded-xl shadow-sm border border-gray-200">
-                  ☑️ Sélectionner
+                  {t('parent.select_btn')}
                 </button>
                 <motion.button whileTap={{ scale: 0.95 }}
                   onClick={() => setShowSuggestions(true)}
                   className="bg-kids-teal text-white font-black px-5 py-2 rounded-xl text-sm shadow-md">
-                  + Ajouter
+                  {t('parent.add_btn')}
                 </motion.button>
               </>
             ) : (
               <button
                 onClick={() => { setSelectionMode(false); setSelectedHabitIds(new Set()) }}
                 className="text-xs text-gray-500 font-bold px-3 py-2 bg-white rounded-xl shadow-sm border border-gray-200">
-                Annuler
+                {t('parent.cancel_select')}
               </button>
             )}
           </div>
@@ -1069,13 +1070,13 @@ export default function ParentView() {
                 }
               }}
               className="text-sm font-bold text-red-600">
-              {selectedHabitIds.size === filteredHabits.length ? '☐ Tout désélectionner' : '☑ Tout sélectionner'}
+              {selectedHabitIds.size === filteredHabits.length ? t('parent.deselect_all') : t('parent.select_all')}
             </button>
             <motion.button whileTap={{ scale: 0.95 }}
               onClick={deleteSelectedHabits}
               disabled={selectedHabitIds.size === 0}
               className="bg-red-500 text-white font-black px-4 py-1.5 rounded-xl text-sm disabled:opacity-40">
-              🗑️ Supprimer {selectedHabitIds.size > 0 ? `(${selectedHabitIds.size})` : ''}
+              {t('parent.delete_selection')} {selectedHabitIds.size > 0 ? `(${selectedHabitIds.size})` : ''}
             </motion.button>
           </div>
         )}
@@ -1085,7 +1086,7 @@ export default function ParentView() {
           <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
             <button onClick={() => setCategoryFilter('ALL')}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${categoryFilter === 'ALL' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-500 border-gray-200'}`}>
-              Toutes
+              {t('parent.all_categories')}
             </button>
             {usedCategories.map(catId => {
               const cat = getCategoryInfo(catId)
@@ -1155,14 +1156,14 @@ export default function ParentView() {
         {/* Par jour view */}
         {habitsView === 'parjour' && (
           <div className="space-y-3">
-            {WEEK_DAYS.map(({ label, short, day }) => {
+            {WEEK_DAYS.map(({ tKey, shortKey, day }) => {
               const dayHabits = habitsForDay(day)
               return (
                 <div key={day} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                   <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100">
-                    <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">{short}</span>
-                    <span className="font-bold text-gray-700 text-sm">{label}</span>
-                    <span className="text-xs text-gray-400 font-semibold">{dayHabits.length} habitude{dayHabits.length !== 1 ? 's' : ''}</span>
+                    <span className="w-7 h-7 bg-kids-blue text-white text-xs font-black rounded-full flex items-center justify-center">{t(shortKey)}</span>
+                    <span className="font-bold text-gray-700 text-sm">{t(tKey)}</span>
+                    <span className="text-xs text-gray-400 font-semibold">{t('parent.habits_n', { n: dayHabits.length, s: dayHabits.length !== 1 ? 's' : '' })}</span>
                     <motion.button whileTap={{ scale: 0.9 }}
                       onClick={() => { setAddForDay(day); setShowSuggestions(true) }}
                       className="ml-auto w-7 h-7 bg-kids-teal text-white font-black text-base rounded-full flex items-center justify-center shadow-sm">
@@ -1170,7 +1171,7 @@ export default function ParentView() {
                     </motion.button>
                   </div>
                   {dayHabits.length === 0
-                    ? <p className="px-4 py-3 text-sm text-gray-400 italic">Aucune habitude ce jour</p>
+                    ? <p className="px-4 py-3 text-sm text-gray-400 italic">{t('parent.no_day_habits')}</p>
                     : <div className="divide-y divide-gray-50">
                         {dayHabits.map((habit: any) => {
                           const cat = getCategoryInfo(habit.category || 'GENERAL')
@@ -1197,10 +1198,10 @@ export default function ParentView() {
         {activeChild.habits?.length === 0 && (
           <div className="text-center py-12">
             <p className="text-5xl mb-3">🌱</p>
-            <p className="font-bold text-gray-500">Pas encore d'habitudes</p>
+            <p className="font-bold text-gray-500">{t('parent.no_habits_yet')}</p>
             <button onClick={() => setShowSuggestions(true)}
               className="mt-3 bg-kids-teal text-white font-bold px-6 py-3 rounded-xl">
-              + Ajouter une habitude
+              {t('parent.add_btn')}
             </button>
           </div>
         )}
@@ -1209,13 +1210,13 @@ export default function ParentView() {
   }
 
   const PRESET_REWARDS = [
-    { emoji: '🍽️', title: 'Choisir le dîner du soir',       pointCost: 50  },
-    { emoji: '🌳', title: 'Sortie au parc',                   pointCost: 80  },
-    { emoji: '❤️', title: 'Temps spécial avec papa/maman',   pointCost: 100 },
-    { emoji: '🎬', title: 'Film familial',                    pointCost: 60  },
-    { emoji: '🎮', title: 'Un jeu ensemble',                  pointCost: 40  },
-    { emoji: '🎁', title: 'Une petite surprise',              pointCost: 30  },
-    { emoji: '🧸', title: 'Acheter un jouet',                 pointCost: 150 },
+    { emoji: '🍽️', tKey: 'preset_rewards.choose_dinner',  pointCost: 50  },
+    { emoji: '🌳', tKey: 'preset_rewards.park_outing',    pointCost: 80  },
+    { emoji: '❤️', tKey: 'preset_rewards.special_time',   pointCost: 100 },
+    { emoji: '🎬', tKey: 'preset_rewards.family_movie',   pointCost: 60  },
+    { emoji: '🎮', tKey: 'preset_rewards.game_together',  pointCost: 40  },
+    { emoji: '🎁', tKey: 'preset_rewards.small_surprise', pointCost: 30  },
+    { emoji: '🧸', tKey: 'preset_rewards.buy_toy',        pointCost: 150 },
   ]
 
   // ── Récompenses tab ──────────────────────────────────────────────────────────
@@ -1223,7 +1224,7 @@ export default function ParentView() {
     if (!activeChild) return null
 
     const openPreset = (preset: typeof PRESET_REWARDS[0]) => {
-      setRewardForm({ title: preset.title, emoji: preset.emoji, pointCost: String(preset.pointCost) })
+      setRewardForm({ title: t(preset.tKey), emoji: preset.emoji, pointCost: String(preset.pointCost) })
       setRewardPanelMode('form')
     }
 
@@ -1252,7 +1253,7 @@ export default function ParentView() {
                         className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm">←</button>
                     )}
                     <span className="font-black text-gray-800 text-base">
-                      {rewardPanelMode === 'form' ? (rewardForm.title ? `✏️ ${rewardForm.title}` : '✨ Nouvelle récompense') : '🎁 Ajouter une récompense'}
+                      {rewardPanelMode === 'form' ? (rewardForm.title ? `✏️ ${rewardForm.title}` : t('reward.new_reward')) : t('reward.add_title')}
                     </span>
                   </div>
                   <button onClick={() => { setShowRewardPanel(false); setRewardPanelMode('presets') }}
@@ -1266,8 +1267,8 @@ export default function ParentView() {
                       className="flex items-center gap-3 w-full bg-gradient-to-r from-kids-orange to-orange-400 text-white rounded-2xl px-4 py-3 font-bold text-sm shadow-md">
                       <span className="text-xl">✏️</span>
                       <div className="text-left">
-                        <p className="font-black">Créer une récompense personnalisée</p>
-                        <p className="text-xs opacity-80">Choisir l'emoji, le nom et les points</p>
+                        <p className="font-black">{t('reward.create_custom')}</p>
+                        <p className="text-xs opacity-80">{t('reward.create_custom_sub')}</p>
                       </div>
                       <span className="ml-auto text-lg">→</span>
                     </button>
@@ -1275,19 +1276,19 @@ export default function ParentView() {
                     {/* Preset list */}
                     <div className="divide-y divide-gray-100 border-2 border-gray-100 rounded-2xl overflow-hidden">
                       {PRESET_REWARDS.map(preset => {
-                        const alreadyAdded = rewards.some(r => r.title === preset.title)
+                        const alreadyAdded = rewards.some(r => r.emoji === preset.emoji)
                         return (
-                          <div key={preset.title} className={`flex items-center gap-3 px-4 py-3 bg-white ${alreadyAdded ? 'opacity-50' : ''}`}>
+                          <div key={preset.tKey} className={`flex items-center gap-3 px-4 py-3 bg-white ${alreadyAdded ? 'opacity-50' : ''}`}>
                             <span className="text-2xl flex-shrink-0">{preset.emoji}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-gray-800 text-sm">{preset.title}</p>
-                              <p className="text-xs text-gray-400">⭐ {preset.pointCost} points</p>
+                              <p className="font-bold text-gray-800 text-sm">{t(preset.tKey)}</p>
+                              <p className="text-xs text-gray-400">{t('reward.pts_label', { n: preset.pointCost })}</p>
                             </div>
                             {alreadyAdded
                               ? <span className="text-green-400 font-bold text-lg flex-shrink-0">✓</span>
                               : <motion.button whileTap={{ scale: 0.9 }} onClick={() => openPreset(preset)}
                                   className="flex-shrink-0 flex items-center gap-1 bg-kids-teal text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow">
-                                  ✏️ Perso.
+                                  {t('reward.customize_btn')}
                                 </motion.button>
                             }
                           </div>
@@ -1309,7 +1310,7 @@ export default function ParentView() {
                       />
                       <input
                         type="text"
-                        placeholder="Nom de la récompense"
+                        placeholder={t('reward.name_placeholder')}
                         value={rewardForm.title}
                         onChange={e => setRewardForm(f => ({ ...f, title: e.target.value }))}
                         className="flex-1 p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
@@ -1318,7 +1319,7 @@ export default function ParentView() {
 
                     {/* Points */}
                     <div>
-                      <label className="text-sm font-bold text-gray-600 mb-2 block">⭐ Points nécessaires</label>
+                      <label className="text-sm font-bold text-gray-600 mb-2 block">{t('reward.points_label')}</label>
                       <div className="flex gap-2 flex-wrap mb-2">
                         {[20, 30, 50, 80, 100, 150, 200].map(v => (
                           <button key={v} type="button"
@@ -1335,7 +1336,7 @@ export default function ParentView() {
                       <input
                         type="text"
                         inputMode="numeric"
-                        placeholder="Autre valeur…"
+                        placeholder={t('reward.other_value')}
                         value={rewardForm.pointCost}
                         onFocus={e => e.target.select()}
                         onChange={e => setRewardForm(f => ({ ...f, pointCost: e.target.value.replace(/\D/g, '') }))}
@@ -1347,7 +1348,7 @@ export default function ParentView() {
                       onClick={addReward}
                       disabled={!rewardForm.title.trim()}
                       className="w-full bg-kids-teal text-white font-black py-3.5 rounded-2xl text-base shadow-md disabled:opacity-50">
-                      ✅ Ajouter cette récompense
+                      {t('reward.add_reward_btn')}
                     </motion.button>
                   </div>
                 )}
@@ -1358,11 +1359,11 @@ export default function ParentView() {
 
         {/* ── Reward list ── */}
         <div className="flex justify-between items-center mb-3">
-          <h3 className="font-black text-gray-700">Récompenses</h3>
+          <h3 className="font-black text-gray-700">{t('nav.recompenses')}</h3>
           <motion.button whileTap={{ scale: 0.95 }}
             onClick={() => { setRewardPanelMode('presets'); setShowRewardPanel(true) }}
             className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm">
-            + Ajouter
+            {t('reward.add_shortbtn')}
           </motion.button>
         </div>
 
@@ -1372,15 +1373,15 @@ export default function ParentView() {
               <span className="text-2xl">{r.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-gray-800 truncate">{r.title}</p>
-                <p className="text-sm text-gray-500">⭐ {r.pointCost} points</p>
+                <p className="text-sm text-gray-500">{t('reward.pts_label', { n: r.pointCost })}</p>
               </div>
               {r.isUnlocked
-                ? <span className="text-green-500 font-bold text-sm flex-shrink-0">✅ Débloqué</span>
+                ? <span className="text-green-500 font-bold text-sm flex-shrink-0">{t('reward.unlocked_label')}</span>
                 : <>
                     <button onClick={() => unlockReward(r.id)}
                       disabled={activeChild.xp < r.pointCost}
                       className="bg-kids-orange text-white font-bold px-3 py-1 rounded-xl text-sm disabled:opacity-40 flex-shrink-0">
-                      Débloquer
+                      {t('reward.unlock_btn')}
                     </button>
                     <button onClick={() => deleteReward(r.id)}
                       className="text-red-300 hover:text-red-500 flex-shrink-0 p-1">🗑️</button>
@@ -1391,8 +1392,8 @@ export default function ParentView() {
           {rewards.length === 0 && (
             <div className="text-center py-8 text-gray-400">
               <p className="text-4xl mb-2">🎁</p>
-              <p className="font-semibold">Aucune récompense</p>
-              <p className="text-sm mt-1">Ajoutez des récompenses pour motiver votre enfant !</p>
+              <p className="font-semibold">{t('reward.no_rewards')}</p>
+              <p className="text-sm mt-1">{t('reward.no_rewards_sub')}</p>
             </div>
           )}
         </div>
@@ -1411,7 +1412,7 @@ export default function ParentView() {
         <div className="flex-1">
           <p className="font-black text-gray-800">{user?.name}</p>
           <p className="text-sm text-gray-400">{user?.email}</p>
-          {isPremium && <span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full">✨ Premium</span>}
+          {isPremium && <span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full">{t('profile.premium_badge')}</span>}
         </div>
         {!isPremium && (
           <button onClick={() => setShowUpgrade(true)}
@@ -1424,7 +1425,7 @@ export default function ParentView() {
       {/* Stats section */}
       {activeChild && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-4 pt-4 font-black text-gray-700 text-sm">📊 Statistiques</p>
+          <p className="px-4 pt-4 font-black text-gray-700 text-sm">{t('profile.stats')}</p>
           <StatsView childId={activeChild.id} childName={activeChild.name} isPremium={isPremium} onUpgrade={() => setShowUpgrade(true)} />
         </div>
       )}
@@ -1432,7 +1433,7 @@ export default function ParentView() {
       {/* Notifications */}
       {activeChild && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <p className="px-4 pt-4 font-black text-gray-700 text-sm">🔔 Rappels</p>
+          <p className="px-4 pt-4 font-black text-gray-700 text-sm">{t('profile.reminders')}</p>
           <div className="p-4">
             <NotificationSettings childId={activeChild.id} />
           </div>
@@ -1467,13 +1468,13 @@ export default function ParentView() {
       {/* Changer le mot de passe */}
       <button onClick={() => { setShowChangePassword(true); setPwError(''); setPwSuccess(false) }}
         className="w-full bg-gray-50 text-gray-700 font-bold py-3 rounded-2xl border-2 border-gray-100">
-        🔑 Changer le mot de passe
+        {t('profile.change_password')}
       </button>
 
       {/* Logout */}
       <button onClick={logout}
         className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-2xl border-2 border-red-100">
-        🚪 Se déconnecter
+        🚪 {t('profile.logout')}
       </button>
     </div>
   )
@@ -1494,12 +1495,12 @@ export default function ParentView() {
               <div className="p-6 bg-kids-orange">
                 <p className="text-white/80 text-sm font-semibold">{greeting()} 👋</p>
                 <p className="text-white font-black text-xl">{user?.name}</p>
-                {isPremium && <span className="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full mt-1 inline-block">✨ Premium</span>}
+                {isPremium && <span className="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full mt-1 inline-block">{t('profile.premium_badge')}</span>}
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Enfants */}
                 <div>
-                  <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 px-1">Mes enfants</p>
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 px-1">{t('parent.my_children')}</p>
                   <div className="space-y-1">
                     {children.map(c => (
                       <div key={c.id}
@@ -1519,7 +1520,7 @@ export default function ParentView() {
                           onClick={() => openEditChildProfile(c)}
                           className="flex-1 text-left min-w-0">
                           <p className="font-bold text-gray-800 text-sm truncate">{c.name}</p>
-                          <p className="text-xs text-gray-400">Niv. {c.level} · {c.xp} XP{c.classe ? ` · ${c.classe}` : ''}</p>
+                          <p className="text-xs text-gray-400">{t('parent.level_short')} {c.level} · {c.xp} XP{c.classe ? ` · ${c.classe}` : ''}</p>
                         </button>
                         {/* Supprimer */}
                         <button onClick={() => { setConfirmDeleteId(c.id); setShowHamburger(false) }}
@@ -1529,7 +1530,7 @@ export default function ParentView() {
                     <button onClick={() => { setShowAddChild(true); setShowHamburger(false) }}
                       className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 text-left border-2 border-dashed border-gray-200">
                       <span className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center text-xl">+</span>
-                      <span className="font-bold text-gray-400 text-sm">Ajouter un enfant</span>
+                      <span className="font-bold text-gray-400 text-sm">{t('parent.add_child')}</span>
                     </button>
                   </div>
                 </div>
@@ -1539,13 +1540,13 @@ export default function ParentView() {
                   <button onClick={() => { setNavTab('profil'); setShowHamburger(false) }}
                     className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 text-left">
                     <span className="text-xl">👤</span>
-                    <span className="font-bold text-gray-700">Mon profil</span>
+                    <span className="font-bold text-gray-700">{t('parent.my_profile')}</span>
                   </button>
                   {!isPremium && (
                     <button onClick={() => { setShowUpgrade(true); setShowHamburger(false) }}
                       className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 text-left">
                       <span className="text-xl">⭐</span>
-                      <span className="font-bold text-yellow-600">Passer Premium</span>
+                      <span className="font-bold text-yellow-600">{t('parent.go_premium')}</span>
                     </button>
                   )}
                 </div>
@@ -1554,7 +1555,7 @@ export default function ParentView() {
                 <button onClick={logout}
                   className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 text-left">
                   <span className="text-xl">🚪</span>
-                  <span className="font-bold text-red-500">Se déconnecter</span>
+                  <span className="font-bold text-red-500">{t('profile.logout')}</span>
                 </button>
               </div>
             </motion.div>
@@ -1571,7 +1572,7 @@ export default function ParentView() {
               className="fixed inset-x-4 top-16 bottom-16 max-w-md mx-auto bg-white rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h2 className="font-black text-gray-800 text-lg">Modifier le profil</h2>
+                <h2 className="font-black text-gray-800 text-lg">{t('modal.edit_profile')}</h2>
                 <button onClick={() => setEditingChildProfile(null)}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
               </div>
@@ -1602,57 +1603,57 @@ export default function ParentView() {
                 </div>
                 {/* Nom */}
                 <div>
-                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Prénom</label>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">{t('modal.first_name')}</label>
                   <input type="text" value={editChildForm.name}
                     onChange={e => setEditChildForm(f => ({ ...f, name: e.target.value }))}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
                 </div>
                 {/* Sexe */}
                 <div>
-                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Sexe</label>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">{t('modal.gender')}</label>
                   <div className="flex gap-2">
                     <button type="button"
                       onClick={() => setEditChildForm(f => ({ ...f, sex: f.sex === 'GARCON' ? '' : 'GARCON' }))}
                       className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${editChildForm.sex === 'GARCON' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>
-                      👦 Garçon
+                      {t('modal.boy')}
                     </button>
                     <button type="button"
                       onClick={() => setEditChildForm(f => ({ ...f, sex: f.sex === 'FILLE' ? '' : 'FILLE' }))}
                       className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${editChildForm.sex === 'FILLE' ? 'bg-pink-100 border-pink-400 text-pink-700' : 'bg-white border-gray-200 text-gray-500'}`}>
-                      👧 Fille
+                      {t('modal.girl')}
                     </button>
                   </div>
                 </div>
                 {/* Date de naissance */}
                 <div>
-                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Date de naissance</label>
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">{t('modal.birth_date')}</label>
                   <input type="date" value={editChildForm.birthDate}
                     onChange={e => setEditChildForm(f => ({ ...f, birthDate: e.target.value }))}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
                 </div>
                 {/* Classe */}
                 <div>
-                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">Classe</label>
-                  <input type="text" placeholder="Ex : CM1, 6ème, Maternelle…" value={editChildForm.classe}
+                  <label className="text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5 block">{t('modal.class_label')}</label>
+                  <input type="text" placeholder={t('modal.class_ph')} value={editChildForm.classe}
                     onChange={e => setEditChildForm(f => ({ ...f, classe: e.target.value }))}
                     className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-800 focus:border-kids-orange focus:outline-none" />
                 </div>
                 {/* Stats (lecture seule) */}
                 <div className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-3 text-center">
-                  <div><p className="text-lg font-black text-kids-orange">{editingChildProfile.level}</p><p className="text-xs text-gray-400 font-semibold">Niveau</p></div>
-                  <div><p className="text-lg font-black text-yellow-500">{editingChildProfile.xp}</p><p className="text-xs text-gray-400 font-semibold">XP total</p></div>
-                  <div><p className="text-lg font-black text-orange-500">{editingChildProfile.streakDays}j</p><p className="text-xs text-gray-400 font-semibold">Série</p></div>
+                  <div><p className="text-lg font-black text-kids-orange">{editingChildProfile.level}</p><p className="text-xs text-gray-400 font-semibold">{t('modal.level')}</p></div>
+                  <div><p className="text-lg font-black text-yellow-500">{editingChildProfile.xp}</p><p className="text-xs text-gray-400 font-semibold">{t('modal.xp_total')}</p></div>
+                  <div><p className="text-lg font-black text-orange-500">{editingChildProfile.streakDays}j</p><p className="text-xs text-gray-400 font-semibold">{t('modal.streak')}</p></div>
                 </div>
               </div>
               {/* Footer */}
               <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
                 <button onClick={() => setEditingChildProfile(null)}
                   className="flex-1 py-3 bg-gray-100 text-gray-600 font-bold rounded-2xl">
-                  Annuler
+                  {t('modal.cancel_btn')}
                 </button>
                 <button onClick={saveChildProfile}
                   className="flex-1 py-3 bg-kids-orange text-white font-black rounded-2xl shadow-md">
-                  ✓ Sauvegarder
+                  {t('modal.save_btn')}
                 </button>
               </div>
             </motion.div>
@@ -1668,26 +1669,26 @@ export default function ParentView() {
             <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
               className="fixed inset-x-4 top-auto bottom-0 max-w-md mx-auto bg-white rounded-t-3xl shadow-2xl z-50 p-6 pb-10">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-black text-gray-800 text-lg">🔑 Changer le mot de passe</h2>
+                <h2 className="font-black text-gray-800 text-lg">{t('profile.change_password')}</h2>
                 <button onClick={() => setShowChangePassword(false)}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
               </div>
               {pwSuccess ? (
                 <div className="text-center py-6">
                   <div className="text-5xl mb-3">✅</div>
-                  <p className="font-black text-green-600 text-lg">Mot de passe mis à jour !</p>
+                  <p className="font-black text-green-600 text-lg">{t('profile.password_updated')}</p>
                 </div>
               ) : (
                 <form onSubmit={submitChangePassword} className="space-y-3">
-                  <input type="password" placeholder="Mot de passe actuel" value={pwForm.current}
+                  <input type="password" placeholder={t('profile.current_password')} value={pwForm.current}
                     onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
                     className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
                     required />
-                  <input type="password" placeholder="Nouveau mot de passe (min. 8 car.)" value={pwForm.next}
+                  <input type="password" placeholder={t('profile.new_password')} value={pwForm.next}
                     onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
                     className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
                     required minLength={8} />
-                  <input type="password" placeholder="Confirmer le nouveau mot de passe" value={pwForm.confirm}
+                  <input type="password" placeholder={t('profile.confirm_password')} value={pwForm.confirm}
                     onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
                     className="w-full p-3.5 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none"
                     required minLength={8} />
@@ -1696,7 +1697,7 @@ export default function ParentView() {
                   )}
                   <button type="submit" disabled={pwLoading}
                     className="w-full bg-kids-orange text-white font-black py-3.5 rounded-xl disabled:opacity-60 mt-2">
-                    {pwLoading ? '⏳ Enregistrement...' : '✅ Enregistrer'}
+                    {pwLoading ? t('profile.saving') : t('profile.save_password')}
                   </button>
                 </form>
               )}
@@ -1713,7 +1714,7 @@ export default function ParentView() {
             <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
               className="fixed top-16 left-4 right-4 max-w-md mx-auto bg-white rounded-2xl shadow-2xl z-50 flex flex-col" style={{ maxHeight: 'calc(100vh - 80px)' }}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-                <span className="font-black text-gray-800">🔔 Rappels</span>
+                <span className="font-black text-gray-800">{t('parent.notif_panel_title')}</span>
                 <button onClick={() => setShowNotifPanel(false)}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
               </div>
@@ -1738,11 +1739,11 @@ export default function ParentView() {
             <div>
               <p className="text-xs text-gray-400 font-semibold">{greeting()} 👋</p>
               {navTab === 'accueil'
-                ? <p className="font-black text-gray-800 text-base">Progrès de mes enfants</p>
+                ? <p className="font-black text-gray-800 text-base">{t('parent.all_children_progress')}</p>
                 : <button
                     onClick={() => setShowChildDropdown(v => !v)}
                     className="flex items-center gap-1 font-black text-gray-800 text-base">
-                    {activeChild ? `Progrès de ${activeChild.name}` : 'Espace Parent'}
+                    {activeChild ? t('parent.child_progress', { name: activeChild.name }) : t('nav.accueil')}
                     {children.length > 0 && <span className="text-gray-400 text-sm">▾</span>}
                   </button>
               }
@@ -1787,7 +1788,7 @@ export default function ParentView() {
                     }
                     <div className="flex-1 text-left">
                       <p className="font-bold text-gray-800">{c.name}</p>
-                      <p className="text-xs text-gray-400">Niv. {c.level} · {c.xp} XP · {c.streakDays}j</p>
+                      <p className="text-xs text-gray-400">{t('parent.level_short')} {c.level} · {c.xp} XP · {c.streakDays}j</p>
                     </div>
                     {activeId === c.id && <span className="text-kids-orange font-bold">✓</span>}
                     <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.id) }}
@@ -1797,7 +1798,7 @@ export default function ParentView() {
                 <button onClick={() => { setShowAddChild(true); setShowChildDropdown(false) }}
                   className="w-full flex items-center gap-3 p-3 rounded-xl text-kids-teal font-bold hover:bg-gray-50">
                   <span className="w-9 h-9 border-2 border-dashed border-kids-teal rounded-full flex items-center justify-center text-lg">+</span>
-                  Ajouter un enfant
+                  {t('parent.add_child')}
                 </button>
               </div>
             </motion.div>
@@ -1814,10 +1815,10 @@ export default function ParentView() {
         {confirmDeleteId && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 shadow-md mb-4">
-            <p className="font-bold text-red-700 mb-3">⚠️ Supprimer cet enfant ? Toutes ses données seront perdues.</p>
+            <p className="font-bold text-red-700 mb-3">{t('parent.delete_child_confirm')}</p>
             <div className="flex gap-2">
-              <button onClick={() => deleteChild(confirmDeleteId)} className="flex-1 bg-red-500 text-white font-bold py-2 rounded-xl">Supprimer</button>
-              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-2 rounded-xl">Annuler</button>
+              <button onClick={() => deleteChild(confirmDeleteId)} className="flex-1 bg-red-500 text-white font-bold py-2 rounded-xl">{t('common.delete')}</button>
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-2 rounded-xl">{t('modal.cancel_btn')}</button>
             </div>
           </motion.div>
         )}
@@ -1826,42 +1827,42 @@ export default function ParentView() {
         {showAddChild && (
           <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             onSubmit={addChild} className="bg-white rounded-2xl p-4 shadow-md mb-4 space-y-3">
-            <h3 className="font-black text-gray-800 text-base">👶 Nouvel enfant</h3>
+            <h3 className="font-black text-gray-800 text-base">{t('modal.new_child')}</h3>
             <PhotoPicker
               photoUrl={newChildForm.photoUrl || undefined}
               onPhotoChange={url => setNewChildForm(f => ({ ...f, photoUrl: url ?? '' }))}
             />
-            <input autoFocus type="text" placeholder="Prénom *" value={newChildForm.name}
+            <input autoFocus type="text" placeholder={t('modal.first_name_ph')} value={newChildForm.name}
               onChange={e => setNewChildForm(f => ({ ...f, name: e.target.value }))}
               className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" required />
             <div className="flex gap-2">
               <button type="button"
                 onClick={() => setNewChildForm(f => ({ ...f, sex: f.sex === 'GARCON' ? '' : 'GARCON' }))}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${newChildForm.sex === 'GARCON' ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}>
-                👦 Garçon
+                {t('modal.boy')}
               </button>
               <button type="button"
                 onClick={() => setNewChildForm(f => ({ ...f, sex: f.sex === 'FILLE' ? '' : 'FILLE' }))}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-sm border-2 transition-colors ${newChildForm.sex === 'FILLE' ? 'bg-pink-100 border-pink-400 text-pink-700' : 'bg-white border-gray-200 text-gray-500'}`}>
-                👧 Fille
+                {t('modal.girl')}
               </button>
             </div>
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">Date de naissance</label>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">{t('modal.birth_date')}</label>
                 <input type="date" value={newChildForm.birthDate}
                   onChange={e => setNewChildForm(f => ({ ...f, birthDate: e.target.value }))}
                   className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" />
               </div>
               <div className="flex-1">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">Classe</label>
-                <input type="text" placeholder="Ex: CM1" value={newChildForm.classe}
+                <label className="text-xs font-bold text-gray-500 mb-1 block">{t('modal.class_label')}</label>
+                <input type="text" placeholder={t('modal.class_ph_short')} value={newChildForm.classe}
                   onChange={e => setNewChildForm(f => ({ ...f, classe: e.target.value }))}
                   className="w-full p-3 border-2 border-gray-200 rounded-xl font-semibold focus:border-kids-orange focus:outline-none" />
               </div>
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">✓ Ajouter</button>
+              <button type="submit" className="flex-1 bg-kids-teal text-white font-bold py-3 rounded-xl">{t('modal.add_btn')}</button>
               <button type="button" onClick={() => setShowAddChild(false)} className="px-4 bg-gray-100 text-gray-500 font-bold rounded-xl">✕</button>
             </div>
           </motion.form>
@@ -1878,7 +1879,7 @@ export default function ParentView() {
             </motion.button>
             <div className="flex-1 min-w-0">
               <p className="font-black text-gray-800">{activeChild.name}</p>
-              <p className="text-xs text-gray-400">Niv. {activeChild.level} · {activeChild.xp} XP · {activeChild.streakDays}j</p>
+              <p className="text-xs text-gray-400">{t('parent.level_short')} {activeChild.level} · {activeChild.xp} XP · {activeChild.streakDays}j</p>
             </div>
             <button onClick={() => setEditingAvatar(v => !v)}
               className="text-xs text-kids-blue font-bold px-2 py-1 rounded-lg bg-blue-50">
@@ -1886,7 +1887,7 @@ export default function ParentView() {
             </button>
             <button onClick={() => navigate('/child')}
               className="text-xs text-kids-orange font-bold px-2 py-1 rounded-lg bg-orange-50">
-              Vue enfant
+              {t('parent.child_btn_view')}
             </button>
           </div>
         )}
@@ -1905,7 +1906,7 @@ export default function ParentView() {
                   setChildren(prev => prev.map(c => c.id === activeChild.id ? { ...c, photoUrl: url ?? undefined } : c))
                   setEditingAvatar(false)
                 } catch {
-                  alert('❌ Erreur : photo non sauvegardée. Vérifiez votre connexion.')
+                  alert(t('modal.save_photo_error'))
                 }
               }}
             />
@@ -1916,10 +1917,10 @@ export default function ParentView() {
         {children.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-5xl mb-3">👶</p>
-            <p className="font-bold text-gray-500 mb-4">Ajoutez votre premier enfant !</p>
+            <p className="font-bold text-gray-500 mb-4">{t('parent.no_children')}</p>
             <button onClick={() => setShowAddChild(true)}
               className="bg-kids-teal text-white font-bold px-6 py-3 rounded-2xl">
-              + Ajouter un enfant
+              {t('parent.add_child')}
             </button>
           </div>
         ) : (
