@@ -1015,29 +1015,57 @@ export default function ParentView() {
           </div>
         )}
 
-        {/* List view with drag */}
+        {/* List view — drag normal, plain div en mode sélection */}
         {habitsView === 'list' && (
-          <Reorder.Group axis="y" values={filteredHabits}
-            onReorder={newList => { setHabitsList(newList); habitsListRef.current = newList }}
-            className="space-y-2">
-            {filteredHabits.map(habit => (
-              <HabitRow
-                key={habit.id}
-                habit={habit}
-                onDragEnd={() => saveHabitOrder(habitsListRef.current)}
-                onDelete={() => deleteHabit(habit.id)}
-                completedDates={completedByHabit.get(habit.id)}
-                weekDays={last7Days}
-                selectionMode={selectionMode}
-                selected={selectedHabitIds.has(habit.id)}
-                onToggleSelect={() => setSelectedHabitIds(prev => {
-                  const next = new Set(prev)
-                  next.has(habit.id) ? next.delete(habit.id) : next.add(habit.id)
-                  return next
-                })}
-              />
-            ))}
-          </Reorder.Group>
+          selectionMode ? (
+            <div className="space-y-2">
+              {filteredHabits.map(habit => {
+                const selected = selectedHabitIds.has(habit.id)
+                const cat = getCategoryInfo(habit.category || 'GENERAL')
+                return (
+                  <button
+                    key={habit.id}
+                    type="button"
+                    onClick={() => setSelectedHabitIds(prev => {
+                      const next = new Set(prev)
+                      next.has(habit.id) ? next.delete(habit.id) : next.add(habit.id)
+                      return next
+                    })}
+                    className={`w-full text-left bg-white rounded-2xl p-3 shadow-sm flex items-center gap-3 transition-all border-2 ${
+                      selected ? 'border-red-400 bg-red-50' : 'border-transparent'
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                      selected ? 'bg-red-500 border-red-500' : 'border-gray-300 bg-white'
+                    }`}>
+                      {selected && <span className="text-white text-xs font-black">✓</span>}
+                    </div>
+                    <span className="text-2xl">{habit.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 text-sm truncate">{habit.title}</p>
+                      <p className="text-xs text-gray-400">{cat.emoji} {cat.label}</p>
+                    </div>
+                    <span className="text-xs font-bold text-yellow-500 flex-shrink-0">⭐ {habit.pointValue}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <Reorder.Group axis="y" values={filteredHabits}
+              onReorder={newList => { setHabitsList(newList); habitsListRef.current = newList }}
+              className="space-y-2">
+              {filteredHabits.map(habit => (
+                <HabitRow
+                  key={habit.id}
+                  habit={habit}
+                  onDragEnd={() => saveHabitOrder(habitsListRef.current)}
+                  onDelete={() => deleteHabit(habit.id)}
+                  completedDates={completedByHabit.get(habit.id)}
+                  weekDays={last7Days}
+                />
+              ))}
+            </Reorder.Group>
+          )
         )}
 
         {/* Par jour view */}
