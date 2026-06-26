@@ -34,6 +34,29 @@ interface Reward {
   type: string
 }
 
+const SKILLS = [
+  { id: 'autonomie',  label: 'Autonomie',  emoji: '🧠', color: '#54A0FF', bg: 'bg-blue-100',   bar: 'bg-blue-400'   },
+  { id: 'discipline', label: 'Discipline', emoji: '💪', color: '#1DD1A1', bg: 'bg-teal-100',   bar: 'bg-teal-400'   },
+  { id: 'savoir',     label: 'Savoir',     emoji: '📚', color: '#FF9F43', bg: 'bg-orange-100', bar: 'bg-orange-400' },
+  { id: 'empathie',   label: 'Empathie',   emoji: '❤️', color: '#FF6B6B', bg: 'bg-red-100',    bar: 'bg-red-400'    },
+  { id: 'respect',    label: 'Respect',    emoji: '🤝', color: '#A29BFE', bg: 'bg-purple-100', bar: 'bg-purple-400' },
+]
+
+const CATEGORY_SKILLS: Record<string, string[]> = {
+  HYGIENE:      ['autonomie', 'discipline'],
+  EDUCATION:    ['savoir', 'discipline'],
+  SPORT:        ['discipline', 'autonomie'],
+  ALIMENTATION: ['autonomie', 'discipline'],
+  SOMMEIL:      ['discipline'],
+  CREATIVITE:   ['autonomie', 'savoir'],
+  MENAGE:       ['autonomie', 'respect'],
+  AUTONOMIE:    ['autonomie'],
+  NATURE:       ['respect', 'empathie'],
+  SOCIAL:       ['empathie', 'respect'],
+  SECURITE:     ['discipline', 'autonomie'],
+  GENERAL:      ['discipline'],
+}
+
 const WEEK_DAYS = [
   { label: 'Lundi',    short: 'Lu', day: 1 },
   { label: 'Mardi',    short: 'Ma', day: 2 },
@@ -878,6 +901,61 @@ export default function ParentView() {
             </div>
           )}
         </div>
+
+        {/* Compétences développées cette semaine */}
+        {(() => {
+          const habitMap = new Map((activeChild.habits ?? []).map((h: any) => [h.id, h]))
+          const scores: Record<string, number> = {}
+          weeklyCompletions.forEach(c => {
+            const habit = habitMap.get(c.habitId)
+            if (!habit) return
+            const skills = CATEGORY_SKILLS[habit.category] ?? ['discipline']
+            skills.forEach(s => { scores[s] = (scores[s] ?? 0) + (c.pointsEarned ?? habit.pointValue ?? 10) })
+          })
+          const maxScore = Math.max(1, ...Object.values(scores))
+          const hasData = Object.keys(scores).length > 0
+          return (
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-black text-gray-800 text-sm">🌱 Compétences développées</h3>
+                  <p className="text-xs text-gray-400">Basé sur les 7 derniers jours</p>
+                </div>
+              </div>
+              {hasData ? (
+                <div className="space-y-2.5">
+                  {SKILLS.map(skill => {
+                    const score = scores[skill.id] ?? 0
+                    const pct = Math.round((score / maxScore) * 100)
+                    return (
+                      <div key={skill.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                            <span>{skill.emoji}</span>{skill.label}
+                          </span>
+                          <span className="text-xs font-black" style={{ color: skill.color }}>{score > 0 ? `+${score} pts` : '—'}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                          <motion.div
+                            className={`h-2.5 rounded-full ${skill.bar}`}
+                            initial={{ width: 0 }}
+                            animate={{ width: score > 0 ? `${pct}%` : '0%' }}
+                            transition={{ duration: 0.6, delay: SKILLS.indexOf(skill) * 0.08 }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-3xl mb-1">🌱</p>
+                  <p className="text-xs text-gray-400 font-semibold">Aucune habitude réalisée cette semaine</p>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Family progress */}
         {children.length > 1 && (
