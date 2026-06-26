@@ -259,6 +259,50 @@
     "save_profile_error":    "Erreur lors de la sauvegarde"
   },
 
+  "stats": {
+    "days_7":          "7 jours",
+    "days_30":         "30 jours",
+    "pts_label":       "points sur {{n}} jours",
+    "habits_done":     "habitudes faites",
+    "success_rate":    "taux de réussite",
+    "best_day":        "meilleur jour",
+    "advanced_title":  "Stats avancées",
+    "advanced_sub":    "Taux de réussite, meilleur jour, export CSV",
+    "premium_badge":   "Premium",
+    "chart_title":     "Points par jour"
+  },
+
+  "notif": {
+    "push_title":      "🔔 Notifications push",
+    "enabled":         "✅ Activées sur cet appareil",
+    "disabled":        "Désactivées sur cet appareil",
+    "activate":        "🔔 Activer",
+    "deactivate":      "Désactiver",
+    "blocked":         "🚫 Notifications bloquées. Dans Chrome : cliquez sur le 🔒 dans la barre d'adresse → Notifications → Autoriser",
+    "test_sending":    "⏳ Envoi en cours...",
+    "test_sent":       "✅ Envoyée ! Vérifiez vos notifications",
+    "test_error":      "❌ Échec (voir ci-dessous)",
+    "test_btn":        "📨 Envoyer une notification test",
+    "scheduled_title": "⏰ Rappels planifiés",
+    "custom_btn":      "+ Personnalisé",
+    "cancel_btn":      "✕ Annuler",
+    "custom_time":     "Heure personnalisée",
+    "text_label":      "Texte",
+    "saving":          "⏳ Enregistrement...",
+    "add_btn":         "✅ Ajouter ce rappel",
+    "active":          "Actif tous les jours",
+    "inactive":        "Désactivé",
+    "none":            "Aucun rappel configuré. Choisissez un créneau ci-dessus.",
+    "err_add":         "Erreur lors de l'ajout",
+    "err_save":        "Erreur lors de l'enregistrement",
+    "not_supported":   "⚠️ Notifications non supportées sur ce navigateur",
+    "not_supported_sub": "Utilisez Chrome ou Firefox pour activer les rappels",
+    "preset_morning":  "☀️ Matin",
+    "preset_afternoon":"🌤️ Après-midi",
+    "preset_evening":  "🌙 Soir",
+    "default_label":   "Rappel habitudes"
+  },
+
   "preset_rewards": {
     "choose_dinner":  "Choisir le dîner du soir",
     "park_outing":    "Sortie au parc",

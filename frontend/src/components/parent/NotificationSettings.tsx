@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { usePushNotifications } from '../../hooks/usePushNotifications'
 
@@ -11,22 +12,14 @@ interface Schedule {
   isEnabled: boolean
 }
 
-const PRESETS = [
-  { label: '☀️ Matin',       hour: 8,  minute: 0 },
-  { label: '🌤️ Après-midi',  hour: 14, minute: 0 },
-  { label: '🌙 Soir',        hour: 19, minute: 0 },
-]
-
 const pad = (n: number) => String(n).padStart(2, '0')
 
-// Convert local H:M → UTC H:M before sending to server
 function localToUtc(localH: number, localM: number) {
-  const offset = new Date().getTimezoneOffset() // negative for UTC+ zones
+  const offset = new Date().getTimezoneOffset()
   const utcMins = ((localH * 60 + localM + offset) % 1440 + 1440) % 1440
   return { hour: Math.floor(utcMins / 60), minute: utcMins % 60 }
 }
 
-// Convert UTC H:M from server → local H:M for display
 function utcToLocal(utcH: number, utcM: number) {
   const offset = new Date().getTimezoneOffset()
   const localMins = ((utcH * 60 + utcM - offset) % 1440 + 1440) % 1440
@@ -34,11 +27,12 @@ function utcToLocal(utcH: number, utcM: number) {
 }
 
 export default function NotificationSettings({ childId }: { childId: string }) {
+  const { t } = useTranslation()
   const { supported, permission, isSubscribed, loading, error, subscribe, unsubscribe, sendTest, testStatus } =
     usePushNotifications()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ hour: '8', minute: '00', label: 'Rappel habitudes' })
+  const [form, setForm] = useState({ hour: '8', minute: '00', label: '' })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
@@ -51,43 +45,46 @@ export default function NotificationSettings({ childId }: { childId: string }) {
   }
 
   useEffect(() => { fetchSchedules() }, [childId])
+  useEffect(() => { setForm(f => ({ ...f, label: t('notif.default_label') })) }, [t])
+
+  const PRESETS = [
+    { tKey: 'notif.preset_morning',   hour: 8,  minute: 0 },
+    { tKey: 'notif.preset_afternoon', hour: 14, minute: 0 },
+    { tKey: 'notif.preset_evening',   hour: 19, minute: 0 },
+  ]
 
   const addPreset = async (p: typeof PRESETS[0]) => {
     setFormError('')
     setSaving(true)
     try {
       const utc = localToUtc(p.hour, p.minute)
-      await api.post('/push/schedules', { hour: utc.hour, minute: utc.minute, label: p.label, childId })
+      await api.post('/push/schedules', { hour: utc.hour, minute: utc.minute, label: t(p.tKey), childId })
       await fetchSchedules()
     } catch (err: any) {
-      const msg = err.response?.data?.error || 'Erreur lors de l\'ajout'
-      setFormError(msg)
+      setFormError(err.response?.data?.error || t('notif.err_add'))
     } finally {
       setSaving(false)
     }
   }
 
   const addSchedule = async () => {
-    // Dismiss keyboard before saving
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     setFormError('')
     setSaving(true)
-    const hourNum  = Math.max(0, Math.min(23, parseInt(form.hour)  || 0))
+    const hourNum   = Math.max(0, Math.min(23, parseInt(form.hour)   || 0))
     const minuteNum = Math.max(0, Math.min(59, parseInt(form.minute) || 0))
     try {
       const utc = localToUtc(hourNum, minuteNum)
       await api.post('/push/schedules', {
-        hour: utc.hour,
-        minute: utc.minute,
-        label: form.label || 'Rappel habitudes',
+        hour: utc.hour, minute: utc.minute,
+        label: form.label || t('notif.default_label'),
         childId,
       })
       setShowForm(false)
-      setForm({ hour: '8', minute: '00', label: 'Rappel habitudes' })
+      setForm({ hour: '8', minute: '00', label: t('notif.default_label') })
       await fetchSchedules()
     } catch (err: any) {
-      const msg = err.response?.data?.error || 'Erreur lors de l\'enregistrement'
-      setFormError(msg)
+      setFormError(err.response?.data?.error || t('notif.err_save'))
     } finally {
       setSaving(false)
     }
@@ -108,8 +105,8 @@ export default function NotificationSettings({ childId }: { childId: string }) {
   if (!supported) {
     return (
       <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-center">
-        <p className="font-bold text-amber-700">⚠️ Notifications non supportées sur ce navigateur</p>
-        <p className="text-sm text-amber-600 mt-1">Utilisez Chrome ou Firefox pour activer les rappels</p>
+        <p className="font-bold text-amber-700">{t('notif.not_supported')}</p>
+        <p className="text-sm text-amber-600 mt-1">{t('notif.not_supported_sub')}</p>
       </div>
     )
   }
@@ -122,9 +119,9 @@ export default function NotificationSettings({ childId }: { childId: string }) {
       }`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-black text-gray-800 text-lg">🔔 Notifications push</p>
+            <p className="font-black text-gray-800 text-lg">{t('notif.push_title')}</p>
             <p className={`text-sm font-semibold ${isSubscribed ? 'text-green-600' : 'text-gray-500'}`}>
-              {isSubscribed ? '✅ Activées sur cet appareil' : 'Désactivées sur cet appareil'}
+              {isSubscribed ? t('notif.enabled') : t('notif.disabled')}
             </p>
           </div>
           <motion.button
@@ -137,21 +134,17 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 : 'bg-kids-teal text-white shadow-md'
             }`}
           >
-            {loading ? '⏳' : isSubscribed ? 'Désactiver' : '🔔 Activer'}
+            {loading ? '⏳' : isSubscribed ? t('notif.deactivate') : t('notif.activate')}
           </motion.button>
         </div>
 
         {permission === 'denied' && (
           <div className="mt-3 bg-red-50 rounded-xl p-3">
-            <p className="text-xs text-red-600 font-semibold">
-              🚫 Notifications bloquées. Dans Chrome : cliquez sur le 🔒 dans la barre d'adresse → Notifications → Autoriser
-            </p>
+            <p className="text-xs text-red-600 font-semibold">{t('notif.blocked')}</p>
           </div>
         )}
 
-        {error && (
-          <p className="mt-2 text-xs text-red-500 font-semibold">{error}</p>
-        )}
+        {error && <p className="mt-2 text-xs text-red-500 font-semibold">{error}</p>}
 
         {isSubscribed && (
           <div className="mt-3">
@@ -160,26 +153,26 @@ export default function NotificationSettings({ childId }: { childId: string }) {
               disabled={testStatus === 'sending'}
               className="text-xs text-kids-blue font-black underline decoration-dotted disabled:opacity-50"
             >
-              {testStatus === 'sending' ? '⏳ Envoi en cours...'
-                : testStatus === 'sent'    ? '✅ Envoyée ! Vérifiez vos notifications'
-                : testStatus === 'error'   ? '❌ Échec (voir ci-dessous)'
-                : '📨 Envoyer une notification test'}
+              {testStatus === 'sending' ? t('notif.test_sending')
+                : testStatus === 'sent'  ? t('notif.test_sent')
+                : testStatus === 'error' ? t('notif.test_error')
+                : t('notif.test_btn')}
             </button>
           </div>
         )}
       </div>
 
-      {/* Schedules — only show when subscribed */}
+      {/* Schedules */}
       {isSubscribed && (
         <>
           <div className="flex justify-between items-center">
-            <h4 className="font-black text-gray-700">⏰ Rappels planifiés</h4>
+            <h4 className="font-black text-gray-700">{t('notif.scheduled_title')}</h4>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowForm(v => !v)}
               className="bg-kids-orange text-white font-bold px-4 py-2 rounded-xl text-sm"
             >
-              {showForm ? '✕ Annuler' : '+ Personnalisé'}
+              {showForm ? t('notif.cancel_btn') : t('notif.custom_btn')}
             </motion.button>
           </div>
 
@@ -187,15 +180,15 @@ export default function NotificationSettings({ childId }: { childId: string }) {
           <div className="grid grid-cols-3 gap-2">
             {PRESETS.map(p => (
               <motion.button
-                key={p.label}
+                key={p.tKey}
                 whileTap={{ scale: 0.93 }}
                 disabled={saving}
                 onClick={() => addPreset(p)}
                 className="bg-white border-2 border-gray-200 hover:border-kids-orange rounded-2xl p-3 text-center transition-all disabled:opacity-50"
               >
-                <div className="text-xl mb-1">{p.label.split(' ')[0]}</div>
+                <div className="text-xl mb-1">{t(p.tKey).split(' ')[0]}</div>
                 <div className="font-black text-gray-800 text-sm">{pad(p.hour)}h{pad(p.minute)}</div>
-                <div className="text-xs text-gray-500 font-semibold">{p.label.split(' ').slice(1).join(' ')}</div>
+                <div className="text-xs text-gray-500 font-semibold">{t(p.tKey).split(' ').slice(1).join(' ')}</div>
               </motion.button>
             ))}
           </div>
@@ -215,20 +208,14 @@ export default function NotificationSettings({ childId }: { childId: string }) {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-2xl p-4 shadow-md border-2 border-kids-orange/30 space-y-3 pb-8"
             >
-              <p className="font-black text-gray-700">Heure personnalisée</p>
+              <p className="font-black text-gray-700">{t('notif.custom_time')}</p>
               <div className="flex items-center gap-3">
                 <div className="text-center">
                   <label className="text-xs font-bold text-gray-500 block mb-1">HH</label>
                   <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="8"
-                    value={form.hour}
+                    type="text" inputMode="numeric" placeholder="8" value={form.hour}
                     onFocus={e => e.target.select()}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 2)
-                      setForm(f => ({ ...f, hour: v }))
-                    }}
+                    onChange={e => setForm(f => ({ ...f, hour: e.target.value.replace(/\D/g, '').slice(0, 2) }))}
                     className="w-16 p-2 border-2 border-gray-200 rounded-xl font-black text-xl text-center focus:border-kids-orange focus:outline-none"
                   />
                 </div>
@@ -236,20 +223,14 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 <div className="text-center">
                   <label className="text-xs font-bold text-gray-500 block mb-1">MM</label>
                   <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="00"
-                    value={form.minute}
+                    type="text" inputMode="numeric" placeholder="00" value={form.minute}
                     onFocus={e => e.target.select()}
-                    onChange={e => {
-                      const v = e.target.value.replace(/\D/g, '').slice(0, 2)
-                      setForm(f => ({ ...f, minute: v }))
-                    }}
+                    onChange={e => setForm(f => ({ ...f, minute: e.target.value.replace(/\D/g, '').slice(0, 2) }))}
                     className="w-16 p-2 border-2 border-gray-200 rounded-xl font-black text-xl text-center focus:border-kids-orange focus:outline-none"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs font-bold text-gray-500 block mb-1">Texte</label>
+                  <label className="text-xs font-bold text-gray-500 block mb-1">{t('notif.text_label')}</label>
                   <input
                     type="text" value={form.label}
                     onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
@@ -264,12 +245,10 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 </motion.p>
               )}
               <button
-                type="button"
-                onClick={addSchedule}
-                disabled={saving}
+                type="button" onClick={addSchedule} disabled={saving}
                 className="w-full bg-kids-teal text-white font-black py-3 rounded-xl disabled:opacity-50"
               >
-                {saving ? '⏳ Enregistrement...' : '✅ Ajouter ce rappel'}
+                {saving ? t('notif.saving') : t('notif.add_btn')}
               </button>
             </motion.div>
           )}
@@ -290,7 +269,7 @@ export default function NotificationSettings({ childId }: { childId: string }) {
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-gray-700 text-sm">{s.label}</p>
-                  <p className="text-xs text-gray-400">{s.isEnabled ? 'Actif tous les jours' : 'Désactivé'}</p>
+                  <p className="text-xs text-gray-400">{s.isEnabled ? t('notif.active') : t('notif.inactive')}</p>
                 </div>
                 <button
                   onClick={() => toggleSchedule(s)}
@@ -307,7 +286,7 @@ export default function NotificationSettings({ childId }: { childId: string }) {
             ))}
             {schedules.length === 0 && (
               <p className="text-center text-gray-400 text-sm font-semibold py-6">
-                Aucun rappel configuré. Choisissez un créneau ci-dessus.
+                {t('notif.none')}
               </p>
             )}
           </div>

@@ -259,6 +259,50 @@
     "save_profile_error":   "خطأ في الحفظ"
   },
 
+  "stats": {
+    "days_7":          "7 أيام",
+    "days_30":         "30 يوم",
+    "pts_label":       "نقطة في {{n}} أيام",
+    "habits_done":     "عادة مُنجزة",
+    "success_rate":    "معدل النجاح",
+    "best_day":        "أفضل يوم",
+    "advanced_title":  "إحصائيات متقدمة",
+    "advanced_sub":    "معدل النجاح، أفضل يوم، تصدير CSV",
+    "premium_badge":   "بريميوم",
+    "chart_title":     "النقاط يومياً"
+  },
+
+  "notif": {
+    "push_title":      "🔔 إشعارات الدفع",
+    "enabled":         "✅ مفعّلة على هذا الجهاز",
+    "disabled":        "غير مفعّلة على هذا الجهاز",
+    "activate":        "🔔 تفعيل",
+    "deactivate":      "إلغاء التفعيل",
+    "blocked":         "🚫 الإشعارات محظورة. في Chrome : انقر على 🔒 في شريط العنوان ← الإشعارات ← سماح",
+    "test_sending":    "⏳ جارٍ الإرسال...",
+    "test_sent":       "✅ تم الإرسال ! تحقق من إشعاراتك",
+    "test_error":      "❌ فشل (انظر أدناه)",
+    "test_btn":        "📨 إرسال إشعار تجريبي",
+    "scheduled_title": "⏰ التذكيرات المجدولة",
+    "custom_btn":      "+ مخصص",
+    "cancel_btn":      "✕ إلغاء",
+    "custom_time":     "وقت مخصص",
+    "text_label":      "النص",
+    "saving":          "⏳ جارٍ الحفظ...",
+    "add_btn":         "✅ إضافة هذا التذكير",
+    "active":          "نشط كل يوم",
+    "inactive":        "معطّل",
+    "none":            "لا توجد تذكيرات. اختر وقتاً من الأعلى.",
+    "err_add":         "خطأ أثناء الإضافة",
+    "err_save":        "خطأ أثناء الحفظ",
+    "not_supported":   "⚠️ الإشعارات غير مدعومة في هذا المتصفح",
+    "not_supported_sub": "استخدم Chrome أو Firefox لتفعيل التذكيرات",
+    "preset_morning":  "☀️ الصباح",
+    "preset_afternoon":"🌤️ الظهيرة",
+    "preset_evening":  "🌙 المساء",
+    "default_label":   "تذكير بالعادات"
+  },
+
   "preset_rewards": {
     "choose_dinner":  "اختيار عشاء الليلة",
     "park_outing":    "نزهة في الحديقة",
