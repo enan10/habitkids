@@ -56,7 +56,6 @@ const CATEGORY_SKILLS: Record<string, string[]> = {
   AUTONOMIE:    ['autonomie'],
   NATURE:       ['respect', 'empathie'],
   SOCIAL:       ['empathie', 'respect'],
-  SECURITE:     ['discipline', 'autonomie'],
   GENERAL:      ['discipline'],
 }
 
@@ -108,12 +107,7 @@ const PRESET_HABITS = [
   { tKey: 'presets.express_listen',       emoji: '💬', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
   { tKey: 'presets.give_seat',            emoji: '🧓', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
   { tKey: 'presets.call_family',          emoji: '📞', category: 'SOCIAL',       color: '#FF9FF3', pointValue: 10, daysOfWeek: [0,6] },
-  { tKey: 'presets.use_crosswalk',        emoji: '🚸', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { tKey: 'presets.no_electricity_gas',   emoji: '⚡', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { tKey: 'presets.avoid_danger',         emoji: '⚠️', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { tKey: 'presets.no_lean_window',       emoji: '🪟', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { tKey: 'presets.no_play_street',       emoji: '🛑', category: 'SECURITE',     color: '#EE5A24', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
-  { tKey: 'presets.prepare_alone_morning',emoji: '🌅', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
+{ tKey: 'presets.prepare_alone_morning',emoji: '🌅', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 20, daysOfWeek: [1,2,3,4,5] },
   { tKey: 'presets.prep_bag',             emoji: '🎒', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 15, daysOfWeek: [1,2,3,4] },
   { tKey: 'presets.dress_alone',          emoji: '👕', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },
   { tKey: 'presets.choose_outfit',        emoji: '👗', category: 'AUTONOMIE',    color: '#6C5CE7', pointValue: 10, daysOfWeek: [0,1,2,3,4,5,6] },

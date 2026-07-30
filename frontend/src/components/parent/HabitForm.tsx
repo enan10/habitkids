@@ -16,7 +16,6 @@ export const CATEGORIES = [
   { id: 'AUTONOMIE',    emoji: '🦋' },
   { id: 'NATURE',       emoji: '🌿' },
   { id: 'SOCIAL',       emoji: '👫' },
-  { id: 'SECURITE',     emoji: '🛡️' },
 ]
 
 const DAYS = [

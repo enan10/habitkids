@@ -77,8 +77,7 @@
     "MENAGE":       "Ménage",
     "AUTONOMIE":    "Autonomie",
     "NATURE":       "Nature",
-    "SOCIAL":       "Social",
-    "SECURITE":     "Sécurité"
+    "SOCIAL":       "Social"
   },
 
   "parent": {
@@ -351,12 +350,7 @@
     "express_listen":         "S'exprimer et écouter les autres",
     "give_seat":              "Céder sa place aux personnes âgées",
     "call_family":            "Appeler un ami ou la famille",
-    "use_crosswalk":          "Utiliser le passage piéton",
-    "no_electricity_gas":     "Ne jamais toucher l'électricité ou le gaz",
-    "avoid_danger":           "Éviter les produits dangereux",
-    "no_lean_window":         "Ne pas se pencher aux fenêtres",
-    "no_play_street":         "Ne pas jouer dans la rue",
-    "prepare_alone_morning":  "Se préparer tout seul le matin",
+"prepare_alone_morning":  "Se préparer tout seul le matin",
     "prep_bag":               "Préparer son cartable la veille",
     "dress_alone":            "S'habiller tout seul",
     "choose_outfit":          "Choisir sa tenue du lendemain",

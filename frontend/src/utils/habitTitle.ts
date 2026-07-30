@@ -1,3 +1,6 @@
+import fr from '../i18n/fr.json'
+import ar from '../i18n/ar.json'
+
 const PRESET_HABIT_MAP = new Map<string, string>([
   ['🦷|HYGIENE', 'presets.brush_teeth'],
   ['🧼|HYGIENE', 'presets.wash_hands'],
@@ -36,11 +39,7 @@ const PRESET_HABIT_MAP = new Map<string, string>([
   ['💬|SOCIAL', 'presets.express_listen'],
   ['🧓|SOCIAL', 'presets.give_seat'],
   ['📞|SOCIAL', 'presets.call_family'],
-  ['🚸|SECURITE', 'presets.use_crosswalk'],
-  ['⚡|SECURITE', 'presets.no_electricity_gas'],
-  ['⚠️|SECURITE', 'presets.avoid_danger'],
-  ['🪟|SECURITE', 'presets.no_lean_window'],
-  ['🛑|SECURITE', 'presets.no_play_street'],
+
   ['🌅|AUTONOMIE', 'presets.prepare_alone_morning'],
   ['🎒|AUTONOMIE', 'presets.prep_bag'],
   ['👕|AUTONOMIE', 'presets.dress_alone'],
@@ -53,7 +52,23 @@ const PRESET_HABIT_MAP = new Map<string, string>([
   ['🧺|AUTONOMIE', 'presets.dirty_laundry'],
 ])
 
-export function habitTitle(habit: { emoji: string; category?: string; title?: string }, t: (key: string) => string): string {
+export function habitTitle(
+  habit: { emoji: string; category?: string; title?: string },
+  t: (key: string) => string
+): string {
   const tKey = PRESET_HABIT_MAP.get(`${habit.emoji}|${habit.category ?? ''}`)
-  return tKey ? t(tKey) : (habit.title ?? '')
+  if (!tKey) return habit.title ?? ''
+
+  // Only auto-translate if the stored title matches a known preset translation.
+  // If the user renamed it to something custom, respect that custom title.
+  const key = tKey.replace('presets.', '') as keyof typeof fr.presets
+  const knownFr = fr.presets[key]
+  const knownAr = ar.presets[key]
+  const stored = habit.title ?? ''
+
+  if (stored === knownFr || stored === knownAr || stored === '') {
+    return t(tKey)
+  }
+
+  return stored
 }
