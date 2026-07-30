@@ -135,6 +135,7 @@
     "in_progress_chart":     "en cours",
     "missed_chart":          "manquées",
     "delete_habit_btn":      "🗑️ Supprimer",
+    "rename_habit_btn":      "Renommer",
     "no_day_habits":         "Aucune habitude ce jour",
     "today_label":           "aujourd'hui",
     "this_day_label":        "ce jour",

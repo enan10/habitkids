@@ -135,6 +135,7 @@
     "in_progress_chart":     "قيد التنفيذ",
     "missed_chart":          "فائتة",
     "delete_habit_btn":      "🗑️ حذف",
+    "rename_habit_btn":      "تعديل الاسم",
     "no_day_habits":         "لا توجد عادات في هذا اليوم",
     "today_label":           "اليوم",
     "this_day_label":        "هذا اليوم",

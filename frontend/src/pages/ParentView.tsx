@@ -187,10 +187,11 @@ function DonutChart({ completed, inProgress, missed }: { completed: number; inPr
   )
 }
 
-function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, selectionMode, selected, onToggleSelect }: {
+function HabitRow({ habit, onDragEnd, onDelete, onRename, completedDates, weekDays, selectionMode, selected, onToggleSelect }: {
   habit: any
   onDragEnd: () => void
   onDelete: () => void
+  onRename: (newTitle: string) => void
   completedDates?: Set<string>
   weekDays?: { date: string; label: string }[]
   selectionMode?: boolean
@@ -199,8 +200,23 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
 }) {
   const controls = useDragControls()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
   const { t } = useTranslation()
   const cat = getCategoryInfo(habit.category || 'GENERAL')
+
+  const startEdit = () => {
+    setEditValue(habitTitle(habit, t))
+    setEditing(true)
+    setMenuOpen(false)
+  }
+
+  const saveEdit = () => {
+    const trimmed = editValue.trim()
+    if (trimmed && trimmed !== habitTitle(habit, t)) onRename(trimmed)
+    setEditing(false)
+  }
+
   return (
     <Reorder.Item
       value={habit}
@@ -225,7 +241,30 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
         )}
         <span className="text-2xl">{habit.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-800 text-sm truncate">{habitTitle(habit, t)}</p>
+          {editing ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false) }}
+                className="flex-1 text-sm font-bold border-2 border-kids-orange rounded-lg px-2 py-0.5 focus:outline-none min-w-0"
+              />
+              <button onClick={saveEdit} className="text-green-500 font-black text-base px-1">✓</button>
+              <button onClick={() => setEditing(false)} className="text-gray-400 font-black text-base px-1">✕</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="font-bold text-gray-800 text-sm truncate">{habitTitle(habit, t)}</p>
+              {!selectionMode && (
+                <button onClick={startEdit} className="flex-shrink-0 text-gray-300 hover:text-kids-orange transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
           <p className="text-xs text-gray-400">
             {cat.emoji} {t('categories.' + cat.id)} · {(habit.daysOfWeek ?? []).length === 7 ? t('parent.quotidien') : (habit.daysOfWeek ?? []).sort((a: number, b: number) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b)).map((d: number) => t('days.short_' + d)).join(' ')}
           </p>
@@ -242,6 +281,10 @@ function HabitRow({ habit, onDragEnd, onDelete, completedDates, weekDays, select
       </div>
       {menuOpen && !selectionMode && (
         <div className="absolute right-3 top-10 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+          <button onClick={startEdit}
+            className="flex items-center gap-2 px-4 py-3 text-kids-blue font-bold text-sm hover:bg-blue-50 w-full">
+            ✏️ {t('parent.rename_habit_btn')}
+          </button>
           <button onClick={() => { onDelete(); setMenuOpen(false) }}
             className="flex items-center gap-2 px-4 py-3 text-red-500 font-bold text-sm hover:bg-red-50 w-full">
             {t('parent.delete_habit_btn')}
@@ -486,6 +529,11 @@ export default function ParentView() {
 
   const deleteHabit = async (habitId: string) => {
     await api.delete(`/habits/${habitId}`)
+    fetchChildren()
+  }
+
+  const renameHabit = async (habitId: string, title: string) => {
+    await api.patch(`/habits/${habitId}`, { title })
     fetchChildren()
   }
 
@@ -1141,6 +1189,7 @@ export default function ParentView() {
                   habit={habit}
                   onDragEnd={() => saveHabitOrder(habitsListRef.current)}
                   onDelete={() => deleteHabit(habit.id)}
+                  onRename={(title) => renameHabit(habit.id, title)}
                   completedDates={completedByHabit.get(habit.id)}
                   weekDays={last7Days}
                 />
