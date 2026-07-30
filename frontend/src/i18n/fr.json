@@ -361,5 +361,28 @@
     "wake_alone":             "Se réveiller seul à l'heure",
     "manage_money":           "Gérer son argent de poche",
     "dirty_laundry":          "Mettre son linge sale au panier"
+  },
+
+  "pin": {
+    "title": "Espace Parent",
+    "subtitle": "Entrez le code à 4 chiffres",
+    "error": "Code incorrect, réessayez",
+    "cancel": "Annuler",
+    "section_title": "🔐 Code PIN Parent",
+    "section_sub": "Protégez l'espace parent avec un code à 4 chiffres",
+    "define": "Définir un code PIN",
+    "change": "Changer le code PIN",
+    "remove": "Supprimer le code PIN",
+    "current_label": "Code actuel",
+    "new_label": "Nouveau code (4 chiffres)",
+    "confirm_label": "Confirmer le code",
+    "save_btn": "✓ Enregistrer",
+    "remove_confirm": "Voulez-vous supprimer le code PIN ?",
+    "mismatch": "Les codes ne correspondent pas",
+    "invalid": "Le code doit contenir exactement 4 chiffres",
+    "saved": "✅ Code PIN enregistré",
+    "removed": "✅ Code PIN supprimé",
+    "err_save": "Erreur lors de l'enregistrement",
+    "err_remove": "Erreur lors de la suppression"
   }
 }

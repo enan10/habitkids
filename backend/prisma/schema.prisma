@@ -16,6 +16,7 @@ model User {
   createdAt           DateTime  @default(now())
   resetToken          String?
   resetTokenExpiresAt DateTime?
+  parentPin           String?
   children            Child[]
   pushSubscriptions   PushSubscription[]
   fcmDevices          FcmDevice[]

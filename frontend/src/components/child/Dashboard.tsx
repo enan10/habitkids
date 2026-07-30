@@ -10,6 +10,7 @@ import { launchConfetti } from '../../utils/confetti'
 import { getChildPhoto } from '../../utils/childPhotos'
 import api from '../../api/client'
 import { habitTitle } from '../../utils/habitTitle'
+import { useAuthStore } from '../../store/useStore'
 
 const HABIT_SECTIONS = [
   { key: 'MORNING',   tKey: 'time.morning',   icon: '🌅', bg: 'bg-amber-50',  text: 'text-amber-700'  },
@@ -47,11 +48,17 @@ interface Props {
 export default function Dashboard({ child, onChildUpdate }: Props) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const { user } = useAuthStore()
   const { habits, loading, completeHabit, uncompleteHabit, isCompleted } = useHabits(child.id)
   const [childData, setChildData] = useState(child)
   const [celebration, setCelebration] = useState<CelebrationData | null>(null)
   const [newBadges, setNewBadges] = useState<Badge[]>([])
   const [todayPoints, setTodayPoints] = useState(0)
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState(false)
+  const [pinLoading, setPinLoading] = useState(false)
+  const [pinShake, setPinShake] = useState(false)
   const [badgesKey, setBadgesKey] = useState(0)
   const [rewardsCount, setRewardsCount] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -97,6 +104,46 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
     })
   }
 
+  const handleParentClick = () => {
+    if (user?.parentHasPin) {
+      setPin('')
+      setPinError(false)
+      setShowPinModal(true)
+    } else {
+      navigate('/parent')
+    }
+  }
+
+  const handlePinKey = (digit: string) => {
+    if (pinLoading) return
+    setPinError(false)
+    const next = (pin + digit).slice(0, 4)
+    setPin(next)
+    if (next.length === 4) verifyPin(next)
+  }
+
+  const handlePinBackspace = () => {
+    if (pinLoading) return
+    setPin(p => p.slice(0, -1))
+    setPinError(false)
+  }
+
+  const verifyPin = async (code: string) => {
+    setPinLoading(true)
+    try {
+      await api.post('/auth/verify-pin', { childId: child.id, pin: code })
+      setShowPinModal(false)
+      navigate('/parent')
+    } catch {
+      setPinShake(true)
+      setTimeout(() => setPinShake(false), 500)
+      setPinError(true)
+      setPin('')
+    } finally {
+      setPinLoading(false)
+    }
+  }
+
   const completedCount = habits.filter(h => isCompleted(h.id)).length
 
   const motivData = () => {
@@ -137,7 +184,7 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
 
         {/* Top bar */}
         <div className="flex items-center mb-4 relative z-10">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/parent')}
+          <motion.button whileTap={{ scale: 0.95 }} onClick={handleParentClick}
             className="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-2xl shadow-sm font-bold text-gray-700 text-sm">
             <span>👨‍👩‍👧</span> {t('child.parent_btn')}
           </motion.button>
@@ -288,6 +335,76 @@ export default function Dashboard({ child, onChildUpdate }: Props) {
 
       <CelebrationModal data={celebration} onClose={() => setCelebration(null)} />
       <BadgeEarnedModal badges={newBadges} onClose={() => setNewBadges([])} />
+
+      {/* ── PIN MODAL ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showPinModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowPinModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl shadow-2xl p-7 w-80 flex flex-col items-center gap-5"
+            >
+              {/* Icon + title */}
+              <div className="text-5xl">🔐</div>
+              <div className="text-center">
+                <p className="font-black text-xl text-gray-800">{t('pin.title')}</p>
+                <p className="text-sm text-gray-500 mt-1">{t('pin.subtitle')}</p>
+              </div>
+
+              {/* 4-dot display */}
+              <motion.div
+                animate={pinShake ? { x: [-8, 8, -6, 6, -4, 4, 0] } : {}}
+                transition={{ duration: 0.4 }}
+                className="flex gap-3"
+              >
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className={`w-5 h-5 rounded-full border-2 transition-all ${
+                    pin.length > i
+                      ? pinError ? 'bg-red-400 border-red-400' : 'bg-sky-500 border-sky-500'
+                      : 'border-gray-300 bg-white'
+                  }`} />
+                ))}
+              </motion.div>
+
+              {/* Error message */}
+              {pinError && (
+                <p className="text-red-500 text-sm font-bold -mt-2">{t('pin.error')}</p>
+              )}
+
+              {/* Numeric keypad */}
+              <div className="grid grid-cols-3 gap-3 w-full">
+                {['1','2','3','4','5','6','7','8','9'].map(d => (
+                  <button key={d} onClick={() => handlePinKey(d)}
+                    disabled={pinLoading}
+                    className="h-14 rounded-2xl bg-gray-100 active:bg-sky-100 font-black text-xl text-gray-800 transition-colors disabled:opacity-50">
+                    {d}
+                  </button>
+                ))}
+                <div />
+                <button onClick={() => handlePinKey('0')} disabled={pinLoading}
+                  className="h-14 rounded-2xl bg-gray-100 active:bg-sky-100 font-black text-xl text-gray-800 transition-colors disabled:opacity-50">
+                  0
+                </button>
+                <button onClick={handlePinBackspace} disabled={pinLoading}
+                  className="h-14 rounded-2xl bg-gray-100 active:bg-red-100 font-black text-xl text-gray-600 transition-colors disabled:opacity-50">
+                  ⌫
+                </button>
+              </div>
+
+              {/* Cancel */}
+              <button onClick={() => setShowPinModal(false)}
+                className="text-sm text-gray-400 font-semibold hover:text-gray-600 transition-colors">
+                {t('pin.cancel')}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* CSS for sun spin */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

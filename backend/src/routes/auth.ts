@@ -60,6 +60,46 @@ function resetEmailHtml(name: string, resetUrl: string) {
 }
 
 export default async function authRoutes(app: FastifyInstance) {
+
+  // GET current user (with parentHasPin)
+  app.get('/me', { preHandler: requireAuth }, async (request: any) => {
+    const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
+    if (!user) return request.server.httpErrors?.notFound()
+    return {
+      id: user.id, email: user.email, name: user.name, plan: user.plan,
+      parentHasPin: !!user.parentPin,
+    }
+  })
+
+  // Set / change parent PIN (4 digits)
+  app.post('/pin', { preHandler: requireAuth }, async (request: any, reply) => {
+    const { pin } = z.object({ pin: z.string().regex(/^\d{4}$/) }).parse(request.body)
+    const hashed = await bcrypt.hash(pin, 10)
+    await app.prisma.user.update({ where: { id: request.userId }, data: { parentPin: hashed } })
+    return { success: true, parentHasPin: true }
+  })
+
+  // Remove parent PIN
+  app.delete('/pin', { preHandler: requireAuth }, async (request: any) => {
+    await app.prisma.user.update({ where: { id: request.userId }, data: { parentPin: null } })
+    return { success: true, parentHasPin: false }
+  })
+
+  // Verify PIN (called from child view — no auth, identifies parent via childId)
+  app.post('/verify-pin', async (request: any, reply) => {
+    const { childId, pin } = z.object({
+      childId: z.string(),
+      pin: z.string(),
+    }).parse(request.body)
+    const child = await app.prisma.child.findUnique({ where: { id: childId }, include: { user: true } })
+    if (!child) return reply.code(404).send({ error: 'Child not found' })
+    if (!child.user.parentPin) return { success: true, hasPIN: false }
+    const ok = await bcrypt.compare(pin, child.user.parentPin)
+    if (!ok) return reply.code(401).send({ error: 'PIN incorrect' })
+    return { success: true, hasPIN: true }
+  })
+
+
   app.post('/register', async (request, reply) => {
     const body = registerSchema.parse(request.body)
     const existing = await app.prisma.user.findUnique({ where: { email: body.email } })
@@ -70,7 +110,7 @@ export default async function authRoutes(app: FastifyInstance) {
       data: { email: body.email, password: hashed, name: body.name },
     })
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan } }
+    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: false } }
   })
 
   app.post('/login', async (request, reply) => {
@@ -80,7 +120,7 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.code(401).send({ error: 'Email ou mot de passe incorrect' })
     }
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan } }
+    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: !!user.parentPin } }
   })
 
   app.post('/upgrade', { preHandler: requireAuth }, async (request: any) => {
@@ -168,6 +208,6 @@ export default async function authRoutes(app: FastifyInstance) {
     })
 
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan } }
+    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: false } }
   })
 }

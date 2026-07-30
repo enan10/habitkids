@@ -6,6 +6,7 @@ interface User {
   email: string
   name: string
   plan: 'FREE' | 'PREMIUM'
+  parentHasPin?: boolean
 }
 
 interface AuthState {

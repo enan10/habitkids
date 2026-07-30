@@ -323,7 +323,7 @@ function HabitRow({ habit, onDragEnd, onDelete, onRename, completedDates, weekDa
 export default function ParentView() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
-  const { user, logout } = useAuthStore()
+  const { user, logout, setUser } = useAuthStore()
   const isPremium = user?.plan === 'PREMIUM'
 
   // Core state
@@ -377,6 +377,13 @@ export default function ParentView() {
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState(false)
   const [pwLoading, setPwLoading] = useState(false)
+
+  // PIN
+  const [showPinForm, setShowPinForm] = useState(false)
+  const [pinForm, setPinForm] = useState({ current: '', next: '', confirm: '' })
+  const [pinError, setPinError] = useState('')
+  const [pinSuccess, setPinSuccess] = useState('')
+  const [pinLoading, setPinLoading] = useState(false)
 
   // Last 7 days (Mon label = Lu, etc.)
   const last7Days = useMemo(() => Array.from({ length: 7 }, (_, i) => {
@@ -1447,6 +1454,35 @@ export default function ParentView() {
   }
 
   // ── Profil tab ───────────────────────────────────────────────────────────────
+  const handleSavePin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPinError('')
+    setPinSuccess('')
+    if (!/^\d{4}$/.test(pinForm.next)) { setPinError(t('pin.invalid')); return }
+    if (pinForm.next !== pinForm.confirm) { setPinError(t('pin.mismatch')); return }
+    setPinLoading(true)
+    try {
+      await api.post('/auth/pin', { pin: pinForm.next })
+      if (user) setUser({ ...user, parentHasPin: true })
+      setPinSuccess(t('pin.saved'))
+      setPinForm({ current: '', next: '', confirm: '' })
+      setTimeout(() => { setShowPinForm(false); setPinSuccess('') }, 1500)
+    } catch { setPinError(t('pin.err_save')) }
+    finally { setPinLoading(false) }
+  }
+
+  const handleRemovePin = async () => {
+    if (!window.confirm(t('pin.remove_confirm'))) return
+    setPinLoading(true)
+    try {
+      await api.delete('/auth/pin')
+      if (user) setUser({ ...user, parentHasPin: false })
+      setPinSuccess(t('pin.removed'))
+      setTimeout(() => setPinSuccess(''), 2000)
+    } catch { setPinError(t('pin.err_remove')) }
+    finally { setPinLoading(false) }
+  }
+
   const ProfilTab = () => (
     <div className="space-y-4">
       {/* Parent info */}
@@ -1508,6 +1544,59 @@ export default function ParentView() {
             🇸🇦 {t('profile.lang_ar')}
           </button>
         </div>
+      </div>
+
+      {/* PIN Parent */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <p className="font-black text-gray-700 text-sm mb-1">{t('pin.section_title')}</p>
+        <p className="text-xs text-gray-400 mb-3">{t('pin.section_sub')}</p>
+
+        {pinSuccess && <p className="text-green-600 text-sm font-bold mb-2">{pinSuccess}</p>}
+        {pinError && <p className="text-red-500 text-sm font-bold mb-2">{pinError}</p>}
+
+        {!showPinForm ? (
+          <div className="flex gap-2">
+            <button onClick={() => { setShowPinForm(true); setPinError(''); setPinSuccess(''); setPinForm({ current: '', next: '', confirm: '' }) }}
+              className="flex-1 bg-sky-50 text-sky-700 font-bold py-2.5 rounded-xl border-2 border-sky-100 text-sm">
+              {user?.parentHasPin ? t('pin.change') : t('pin.define')}
+            </button>
+            {user?.parentHasPin && (
+              <button onClick={handleRemovePin} disabled={pinLoading}
+                className="bg-red-50 text-red-500 font-bold py-2.5 px-4 rounded-xl border-2 border-red-100 text-sm disabled:opacity-50">
+                {t('pin.remove')}
+              </button>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={handleSavePin} className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 font-semibold block mb-1">{t('pin.new_label')}</label>
+              <input type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
+                value={pinForm.next}
+                onChange={e => setPinForm(f => ({ ...f, next: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                placeholder="••••"
+                className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-center text-xl tracking-[0.5em] font-bold focus:border-sky-400 focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 font-semibold block mb-1">{t('pin.confirm_label')}</label>
+              <input type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
+                value={pinForm.confirm}
+                onChange={e => setPinForm(f => ({ ...f, confirm: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                placeholder="••••"
+                className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-center text-xl tracking-[0.5em] font-bold focus:border-sky-400 focus:outline-none" />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={pinLoading}
+                className="flex-1 bg-sky-500 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                {pinLoading ? t('common.saving') : t('pin.save_btn')}
+              </button>
+              <button type="button" onClick={() => { setShowPinForm(false); setPinError(''); setPinSuccess('') }}
+                className="bg-gray-100 text-gray-600 font-bold py-2.5 px-4 rounded-xl text-sm">
+                {t('pin.cancel')}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Changer le mot de passe */}
