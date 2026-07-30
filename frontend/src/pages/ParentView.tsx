@@ -767,7 +767,7 @@ export default function ParentView() {
   )
 
   // ── Accueil tab ─────────────────────────────────────────────────────────────
-  const AccueilTab = () => {
+  const renderAccueilTab = () => {
     if (!activeChild) return null
     const today = new Date().toISOString().split('T')[0]
     const isToday = viewDate === today
@@ -1072,7 +1072,7 @@ export default function ParentView() {
   }
 
   // ── Habitudes tab ────────────────────────────────────────────────────────────
-  const HabitudesTab = () => {
+  const renderHabitudesTab = () => {
     if (!activeChild) return null
     return (
       <div>
@@ -1274,7 +1274,7 @@ export default function ParentView() {
   ]
 
   // ── Récompenses tab ──────────────────────────────────────────────────────────
-  const RecompensesTab = () => {
+  const renderRecompensesTab = () => {
     if (!activeChild) return null
 
     const openPreset = (preset: typeof PRESET_REWARDS[0]) => {
@@ -1516,7 +1516,7 @@ export default function ParentView() {
     finally { setPinLoading(false) }
   }
 
-  const ProfilTab = () => (
+  const renderProfilTab = () => (
     <div className="space-y-4">
       {/* Parent info */}
       <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4">
@@ -2107,10 +2107,10 @@ export default function ParentView() {
           </div>
         ) : (
           <>
-            {navTab === 'accueil' && <AccueilTab />}
-            {navTab === 'habitudes' && <HabitudesTab />}
-            {navTab === 'recompenses' && <RecompensesTab />}
-            {navTab === 'profil' && <ProfilTab />}
+            {navTab === 'accueil' && renderAccueilTab()}
+            {navTab === 'habitudes' && renderHabitudesTab()}
+            {navTab === 'recompenses' && renderRecompensesTab()}
+            {navTab === 'profil' && renderProfilTab()}
           </>
         )}
       </div>
