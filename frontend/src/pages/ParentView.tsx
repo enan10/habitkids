@@ -380,7 +380,9 @@ export default function ParentView() {
 
   // PIN
   const [showPinForm, setShowPinForm] = useState(false)
-  const [pinForm, setPinForm] = useState({ current: '', next: '', confirm: '' })
+  const [pinStep, setPinStep] = useState<1 | 2>(1)
+  const [pinNext, setPinNext] = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
   const [pinError, setPinError] = useState('')
   const [pinSuccess, setPinSuccess] = useState('')
   const [pinLoading, setPinLoading] = useState(false)
@@ -1454,20 +1456,51 @@ export default function ParentView() {
   }
 
   // ── Profil tab ───────────────────────────────────────────────────────────────
-  const handleSavePin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const openPinForm = () => {
+    setShowPinForm(true)
+    setPinStep(1)
+    setPinNext('')
+    setPinConfirm('')
     setPinError('')
     setPinSuccess('')
-    if (!/^\d{4}$/.test(pinForm.next)) { setPinError(t('pin.invalid')); return }
-    if (pinForm.next !== pinForm.confirm) { setPinError(t('pin.mismatch')); return }
+  }
+
+  const handlePinKeyParent = (digit: string) => {
+    if (pinLoading) return
+    setPinError('')
+    if (pinStep === 1) {
+      const next = (pinNext + digit).slice(0, 4)
+      setPinNext(next)
+      if (next.length === 4) { setPinStep(2); setPinConfirm('') }
+    } else {
+      const next = (pinConfirm + digit).slice(0, 4)
+      setPinConfirm(next)
+      if (next.length === 4) doSavePin(pinNext, next)
+    }
+  }
+
+  const handlePinBackspaceParent = () => {
+    if (pinLoading) return
+    setPinError('')
+    if (pinStep === 1) setPinNext(p => p.slice(0, -1))
+    else setPinConfirm(p => p.slice(0, -1))
+  }
+
+  const doSavePin = async (code: string, confirm: string) => {
+    if (code !== confirm) {
+      setPinError(t('pin.mismatch'))
+      setPinStep(1)
+      setPinNext('')
+      setPinConfirm('')
+      return
+    }
     setPinLoading(true)
     try {
-      await api.post('/auth/pin', { pin: pinForm.next })
+      await api.post('/auth/pin', { pin: code })
       if (user) setUser({ ...user, parentHasPin: true })
       setPinSuccess(t('pin.saved'))
-      setPinForm({ current: '', next: '', confirm: '' })
       setTimeout(() => { setShowPinForm(false); setPinSuccess('') }, 1500)
-    } catch { setPinError(t('pin.err_save')) }
+    } catch { setPinError(t('pin.err_save')); setPinStep(1); setPinNext(''); setPinConfirm('') }
     finally { setPinLoading(false) }
   }
 
@@ -1556,7 +1589,7 @@ export default function ParentView() {
 
         {!showPinForm ? (
           <div className="flex gap-2">
-            <button onClick={() => { setShowPinForm(true); setPinError(''); setPinSuccess(''); setPinForm({ current: '', next: '', confirm: '' }) }}
+            <button onClick={openPinForm}
               className="flex-1 bg-sky-50 text-sky-700 font-bold py-2.5 rounded-xl border-2 border-sky-100 text-sm">
               {user?.parentHasPin ? t('pin.change') : t('pin.define')}
             </button>
@@ -1568,34 +1601,49 @@ export default function ParentView() {
             )}
           </div>
         ) : (
-          <form onSubmit={handleSavePin} className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-500 font-semibold block mb-1">{t('pin.new_label')}</label>
-              <input type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
-                value={pinForm.next}
-                onChange={e => setPinForm(f => ({ ...f, next: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-                placeholder="••••"
-                className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-center text-xl tracking-[0.5em] font-bold focus:border-sky-400 focus:outline-none" />
+          <div className="space-y-4">
+            {/* Step label */}
+            <p className="text-center text-sm font-bold text-gray-600">
+              {pinStep === 1 ? t('pin.new_label') : t('pin.confirm_label')}
+            </p>
+
+            {/* 4-dot display */}
+            <div className="flex justify-center gap-3">
+              {[0, 1, 2, 3].map(i => {
+                const filled = pinStep === 1 ? pinNext.length > i : pinConfirm.length > i
+                return (
+                  <div key={i} className={`w-5 h-5 rounded-full border-2 transition-all ${
+                    filled ? 'bg-sky-500 border-sky-500' : 'border-gray-300 bg-white'
+                  }`} />
+                )
+              })}
             </div>
-            <div>
-              <label className="text-xs text-gray-500 font-semibold block mb-1">{t('pin.confirm_label')}</label>
-              <input type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
-                value={pinForm.confirm}
-                onChange={e => setPinForm(f => ({ ...f, confirm: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-                placeholder="••••"
-                className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-center text-xl tracking-[0.5em] font-bold focus:border-sky-400 focus:outline-none" />
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={pinLoading}
-                className="flex-1 bg-sky-500 text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
-                {pinLoading ? t('common.saving') : t('pin.save_btn')}
+
+            {/* Keypad */}
+            <div className="grid grid-cols-3 gap-2">
+              {['1','2','3','4','5','6','7','8','9'].map(d => (
+                <button key={d} onClick={() => handlePinKeyParent(d)} disabled={pinLoading}
+                  className="h-12 rounded-xl bg-gray-100 active:bg-sky-100 font-black text-lg text-gray-800 transition-colors disabled:opacity-50">
+                  {d}
+                </button>
+              ))}
+              <div />
+              <button onClick={() => handlePinKeyParent('0')} disabled={pinLoading}
+                className="h-12 rounded-xl bg-gray-100 active:bg-sky-100 font-black text-lg text-gray-800 transition-colors disabled:opacity-50">
+                0
               </button>
-              <button type="button" onClick={() => { setShowPinForm(false); setPinError(''); setPinSuccess('') }}
-                className="bg-gray-100 text-gray-600 font-bold py-2.5 px-4 rounded-xl text-sm">
-                {t('pin.cancel')}
+              <button onClick={handlePinBackspaceParent} disabled={pinLoading}
+                className="h-12 rounded-xl bg-gray-100 active:bg-red-100 font-black text-lg text-gray-600 transition-colors disabled:opacity-50">
+                ⌫
               </button>
             </div>
-          </form>
+
+            {/* Cancel */}
+            <button onClick={() => { setShowPinForm(false); setPinError(''); setPinSuccess('') }}
+              className="w-full text-sm text-gray-400 font-semibold py-1">
+              {t('pin.cancel')}
+            </button>
+          </div>
         )}
       </div>
 
