@@ -11,6 +11,7 @@ import completionsRoutes from './routes/completions'
 import rewardsRoutes from './routes/rewards'
 import badgesRoutes from './routes/badges'
 import pushRoutes from './routes/push'
+import billingRoutes from './routes/billing'
 import { initVapid, initFCM, startNotificationScheduler } from './services/notifications'
 
 const prisma = new PrismaClient()
@@ -48,6 +49,7 @@ app.register(completionsRoutes, { prefix: '/api/completions' })
 app.register(rewardsRoutes, { prefix: '/api/rewards' })
 app.register(badgesRoutes, { prefix: '/api/badges' })
 app.register(pushRoutes, { prefix: '/api/push' })
+app.register(billingRoutes, { prefix: '/api/billing' })
 
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }))
 
