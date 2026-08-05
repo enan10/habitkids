@@ -7,6 +7,12 @@
   VITE_API_URL = "https://habitkids-api.fly.dev/api"
 
 [[redirects]]
+  from = "/privacy.html"
+  to = "/privacy.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
