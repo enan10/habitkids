@@ -11,13 +11,13 @@
     "apk:debug": "cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor/android": "^8.3.1",
     "@capacitor/camera": "^8.2.0",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/local-notifications": "^8.2.0",
     "@capacitor/push-notifications": "^8.1.1",
-    "@revenuecat/purchases-capacitor": "^13.3.0",
     "axios": "^1.7.2",
     "framer-motion": "^11.2.10",
     "i18next": "^26.3.3",

@@ -11,19 +11,18 @@ import { initAdMob, showBanner, removeBanner } from './utils/admob'
 export default function App() {
   const { token } = useAuthStore()
   const location = useLocation()
+  const isPrivacy = location.pathname === '/privacy'
 
-  // Pages publiques accessibles même connecté
-  if (location.pathname === '/privacy') return <PrivacyPage />
-
+  // Tous les hooks AVANT tout return conditionnel (règle React)
   useEffect(() => {
-    if (!token) return
+    if (!token || isPrivacy) return
     initAdMob().then(() => {
       if (location.pathname === '/parent') showBanner()
     })
   }, [token])
 
   useEffect(() => {
-    if (!token) return
+    if (!token || isPrivacy) return
     if (location.pathname === '/parent') {
       showBanner()
     } else {
@@ -31,9 +30,10 @@ export default function App() {
     }
   }, [location.pathname])
 
+  if (isPrivacy) return <PrivacyPage />
+
   return (
     <Routes>
-      {/* Accessible sans authentification */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {!token ? (
