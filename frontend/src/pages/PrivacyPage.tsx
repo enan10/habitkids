@@ -18,7 +18,7 @@ export default function PrivacyPage() {
             L'application <strong>HabitKids</strong> est développée et exploitée par <strong>QREFA ADNANE</strong>.
             Pour toute question relative à la confidentialité, vous pouvez nous contacter à l'adresse suivante :
             <br />
-            <a href="mailto:chaymaa.rawi@gmail.com" className="text-kids-orange font-semibold">chaymaa.rawi@gmail.com</a>
+            <a href="mailto:habitkidscontact@gmail.com" className="text-kids-orange font-semibold">habitkidscontact@gmail.com</a>
           </p>
         </section>
 
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
           </ul>
           <p className="mt-2">
             Pour exercer ces droits, contactez-nous à :
-            <a href="mailto:chaymaa.rawi@gmail.com" className="text-kids-orange font-semibold ml-1">chaymaa.rawi@gmail.com</a>
+            <a href="mailto:habitkidscontact@gmail.com" className="text-kids-orange font-semibold ml-1">habitkidscontact@gmail.com</a>
           </p>
         </section>
 
@@ -140,7 +140,7 @@ export default function PrivacyPage() {
 
         <div className="text-center text-xs text-gray-400">
           <p>© 2026 HabitKids · Tous droits réservés</p>
-          <p className="mt-1">Contact : <a href="mailto:chaymaa.rawi@gmail.com" className="text-kids-orange">chaymaa.rawi@gmail.com</a></p>
+          <p className="mt-1">Contact : <a href="mailto:habitkidscontact@gmail.com" className="text-kids-orange">habitkidscontact@gmail.com</a></p>
         </div>
 
       </div>
