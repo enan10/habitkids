@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-base font-black text-gray-900 mb-2">1. Responsable du traitement</h2>
           <p>
-            L'application <strong>HabitKids</strong> est développée et exploitée par <strong>QREFA ADNANE</strong>.
+            L'application <strong>HabitKids</strong> est développée et exploitée par <strong>SaphirExpress</strong>.
             Pour toute question relative à la confidentialité, vous pouvez nous contacter à l'adresse suivante :
             <br />
             <a href="mailto:habitkidscontact@gmail.com" className="text-kids-orange font-semibold">habitkidscontact@gmail.com</a>
