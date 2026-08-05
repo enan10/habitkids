@@ -24,7 +24,7 @@ export default function App() {
   useEffect(() => {
     if (!token || isPrivacy) return
     if (location.pathname === '/parent') {
-      showBanner()
+      initAdMob().then(() => showBanner())
     } else {
       removeBanner()
     }

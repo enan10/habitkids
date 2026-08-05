@@ -12,6 +12,7 @@ const BANNER_ID   = PROD_BANNER_ID   || TEST_BANNER_ID
 const REWARDED_ID = PROD_REWARDED_ID || TEST_REWARDED_ID
 
 let AdMob: any = null
+let initPromise: Promise<void> | null = null
 
 async function getAdMob() {
   if (!Capacitor.isNativePlatform()) return null
@@ -22,10 +23,15 @@ async function getAdMob() {
   return AdMob
 }
 
-export async function initAdMob() {
-  const admob = await getAdMob()
-  if (!admob) return
-  await admob.initialize({ requestTrackingAuthorization: false })
+export function initAdMob(): Promise<void> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      const admob = await getAdMob()
+      if (!admob) return
+      await admob.initialize({ requestTrackingAuthorization: false })
+    })()
+  }
+  return initPromise
 }
 
 // Afficher la bannière en bas de l'écran
