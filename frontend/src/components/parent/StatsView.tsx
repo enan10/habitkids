@@ -8,11 +8,9 @@ interface DayStat { date: string; count: number; points: number }
 interface Props {
   childId: string
   childName: string
-  isPremium: boolean
-  onUpgrade: () => void
 }
 
-export default function StatsView({ childId, childName, isPremium, onUpgrade }: Props) {
+export default function StatsView({ childId, childName }: Props) {
   const { t, i18n } = useTranslation()
   const [stats, setStats]   = useState<DayStat[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,19 +81,17 @@ export default function StatsView({ childId, childName, isPremium, onUpgrade }: 
             {t('stats.days_7')}
           </button>
           <button
-            onClick={() => isPremium ? setRange(30) : onUpgrade()}
+            onClick={() => setRange(30)}
             className={`flex-1 py-2 transition-all flex items-center justify-center gap-1 ${
               range === 30 ? 'bg-white shadow text-gray-800' : 'text-gray-400'
             }`}>
-            {t('stats.days_30')} {!isPremium && <span className="text-kids-orange">🔒</span>}
+            {t('stats.days_30')}
           </button>
         </div>
-        {isPremium && (
-          <button onClick={exportCSV}
-            className="flex items-center gap-1 px-3 py-2 bg-kids-teal text-white text-xs font-bold rounded-xl">
-            📥 CSV
-          </button>
-        )}
+        <button onClick={exportCSV}
+          className="flex items-center gap-1 px-3 py-2 bg-kids-teal text-white text-xs font-bold rounded-xl">
+          📥 CSV
+        </button>
       </div>
 
       {/* Summary cards */}
@@ -108,31 +104,16 @@ export default function StatsView({ childId, childName, isPremium, onUpgrade }: 
           <p className="text-3xl font-black text-kids-teal">✅ {totalAct}</p>
           <p className="text-xs font-bold text-gray-500 mt-1">{t('stats.habits_done')}</p>
         </div>
-
-        {isPremium ? (
-          <>
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-3xl font-black text-kids-blue">🎯 {successRate}%</p>
-              <p className="text-xs font-bold text-gray-500 mt-1">{t('stats.success_rate')}</p>
-            </div>
-            <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-              <p className="text-xl font-black text-purple-500">
-                🏆 {bestDay.points > 0 ? formatDate(bestDay.date) : '—'}
-              </p>
-              <p className="text-xs font-bold text-gray-500 mt-1">{t('stats.best_day')}</p>
-            </div>
-          </>
-        ) : (
-          <button onClick={onUpgrade}
-            className="col-span-2 bg-orange-50 border-2 border-dashed border-kids-orange rounded-2xl p-3 flex items-center gap-3">
-            <span className="text-2xl">🔒</span>
-            <div className="text-left">
-              <p className="text-sm font-black text-kids-orange">{t('stats.advanced_title')}</p>
-              <p className="text-xs text-gray-500">{t('stats.advanced_sub')}</p>
-            </div>
-            <span className="ml-auto text-xs font-bold text-kids-orange bg-orange-100 px-2 py-1 rounded-full">{t('stats.premium_badge')}</span>
-          </button>
-        )}
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+          <p className="text-3xl font-black text-kids-blue">🎯 {successRate}%</p>
+          <p className="text-xs font-bold text-gray-500 mt-1">{t('stats.success_rate')}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+          <p className="text-xl font-black text-purple-500">
+            🏆 {bestDay.points > 0 ? formatDate(bestDay.date) : '—'}
+          </p>
+          <p className="text-xs font-bold text-gray-500 mt-1">{t('stats.best_day')}</p>
+        </div>
       </div>
 
       {/* Bar chart */}

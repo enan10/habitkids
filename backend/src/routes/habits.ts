@@ -26,9 +26,10 @@ export default async function habitsRoutes(app: FastifyInstance) {
     if (!child) return reply.code(403).send({ error: 'Non autorisé' })
 
     const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
-    if (user?.plan === 'FREE') {
-      const count = await app.prisma.habit.count({ where: { childId: body.childId, isActive: true } })
-      if (count >= 5) return reply.code(403).send({ error: 'Maximum 5 habitudes en plan gratuit' })
+    const maxHabits = 5 + (user?.extraHabits ?? 0)
+    const count = await app.prisma.habit.count({ where: { childId: body.childId, isActive: true } })
+    if (count >= maxHabits) {
+      return reply.code(403).send({ error: 'Limite d\'habitudes atteinte', limitReached: true, type: 'habits' })
     }
     return app.prisma.habit.create({ data: body })
   })

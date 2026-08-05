@@ -66,8 +66,11 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
     if (!user) return request.server.httpErrors?.notFound()
     return {
-      id: user.id, email: user.email, name: user.name, plan: user.plan,
+      id: user.id, email: user.email, name: user.name,
       parentHasPin: !!user.parentPin,
+      extraChildren: user.extraChildren,
+      extraHabits: user.extraHabits,
+      extraRewards: user.extraRewards,
     }
   })
 
@@ -110,7 +113,7 @@ export default async function authRoutes(app: FastifyInstance) {
       data: { email: body.email, password: hashed, name: body.name },
     })
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: false } }
+    return { token, user: { id: user.id, email: user.email, name: user.name, parentHasPin: false, extraChildren: 0, extraHabits: 0, extraRewards: 0 } }
   })
 
   app.post('/login', async (request, reply) => {
@@ -120,12 +123,7 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.code(401).send({ error: 'Email ou mot de passe incorrect' })
     }
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: !!user.parentPin } }
-  })
-
-  app.post('/upgrade', { preHandler: requireAuth }, async (request: any) => {
-    await app.prisma.user.update({ where: { id: request.userId }, data: { plan: 'PREMIUM' } })
-    return { success: true, plan: 'PREMIUM' }
+    return { token, user: { id: user.id, email: user.email, name: user.name, parentHasPin: !!user.parentPin, extraChildren: user.extraChildren, extraHabits: user.extraHabits, extraRewards: user.extraRewards } }
   })
 
   // Changer le mot de passe (utilisateur connecté)
@@ -208,6 +206,6 @@ export default async function authRoutes(app: FastifyInstance) {
     })
 
     const token = app.jwt.sign({ userId: user.id, email: user.email })
-    return { token, user: { id: user.id, email: user.email, name: user.name, plan: user.plan, parentHasPin: false } }
+    return { token, user: { id: user.id, email: user.email, name: user.name, parentHasPin: false, extraChildren: 0, extraHabits: 0, extraRewards: 0 } }
   })
 }

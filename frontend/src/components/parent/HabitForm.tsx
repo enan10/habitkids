@@ -65,11 +65,12 @@ interface Props {
   childId: string
   onSave: () => void
   onCancel: () => void
+  onLimitReached?: () => void
   defaultDays?: number[]
   defaultValues?: HabitDefaults
 }
 
-export default function HabitForm({ childId, onSave, onCancel, defaultDays, defaultValues }: Props) {
+export default function HabitForm({ childId, onSave, onCancel, onLimitReached, defaultDays, defaultValues }: Props) {
   const { t } = useTranslation()
   const initDays = defaultValues?.daysOfWeek ?? defaultDays ?? []
   const initFreq: 'DAILY' | 'WEEKLY' | 'INTERVAL' | 'MONTHLY' =
@@ -147,7 +148,11 @@ export default function HabitForm({ childId, onSave, onCancel, defaultDays, defa
       await Promise.all(form.timesOfDay.map(tod => api.post('/habits', { ...base, timeOfDay: tod })))
       onSave()
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur')
+      if (err.response?.data?.limitReached && onLimitReached) {
+        onLimitReached()
+      } else {
+        alert(err.response?.data?.error || 'Erreur')
+      }
     } finally {
       setLoading(false)
     }

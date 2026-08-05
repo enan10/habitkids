@@ -5,8 +5,10 @@ interface User {
   id: string
   email: string
   name: string
-  plan: 'FREE' | 'PREMIUM'
   parentHasPin?: boolean
+  extraChildren: number
+  extraHabits: number
+  extraRewards: number
 }
 
 interface AuthState {

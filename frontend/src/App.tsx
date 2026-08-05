@@ -1,18 +1,35 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/useStore'
 import LoginPage from './pages/LoginPage'
 import ChildView from './pages/ChildView'
 import ParentView from './pages/ParentView'
 import ResetPasswordPage from './pages/ResetPasswordPage'
-import { initPurchases } from './utils/purchases'
+import PrivacyPage from './pages/PrivacyPage'
+import { initAdMob, showBanner, removeBanner } from './utils/admob'
 
 export default function App() {
-  const { token, user } = useAuthStore()
+  const { token } = useAuthStore()
+  const location = useLocation()
+
+  // Pages publiques accessibles même connecté
+  if (location.pathname === '/privacy') return <PrivacyPage />
 
   useEffect(() => {
-    if (token && user?.id) initPurchases(user.id)
-  }, [token, user?.id])
+    if (!token) return
+    initAdMob().then(() => {
+      if (location.pathname === '/parent') showBanner()
+    })
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+    if (location.pathname === '/parent') {
+      showBanner()
+    } else {
+      removeBanner()
+    }
+  }, [location.pathname])
 
   return (
     <Routes>

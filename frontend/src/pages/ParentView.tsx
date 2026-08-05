@@ -9,7 +9,7 @@ import StatsView from '../components/parent/StatsView'
 import PhotoPicker from '../components/parent/PhotoPicker'
 import { mergePhotos, setChildPhoto, removeChildPhoto } from '../utils/childPhotos'
 import NotificationSettings from '../components/parent/NotificationSettings'
-import UpgradeModal from '../components/parent/UpgradeModal'
+import WatchAdModal from '../components/parent/WatchAdModal'
 import { setLanguage } from '../i18n'
 import { habitTitle } from '../utils/habitTitle'
 
@@ -324,7 +324,6 @@ export default function ParentView() {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
   const { user, logout, setUser } = useAuthStore()
-  const isPremium = user?.plan === 'PREMIUM'
 
   // Core state
   const [children, setChildren] = useState<Child[]>([])
@@ -362,7 +361,7 @@ export default function ParentView() {
   const [badgesCount, setBadgesCount] = useState(0)
 
   // Misc
-  const [showUpgrade, setShowUpgrade] = useState(false)
+  const [watchAdType, setWatchAdType] = useState<'habits' | 'rewards' | 'children' | null>(null)
   const [showHamburger, setShowHamburger] = useState(false)
   const [showNotifPanel, setShowNotifPanel] = useState(false)
   const [editingChildProfile, setEditingChildProfile] = useState<Child | null>(null)
@@ -514,19 +513,24 @@ export default function ParentView() {
 
   const addChild = async (e: React.FormEvent) => {
     e.preventDefault()
-    const res = await api.post('/children', {
-      name: newChildForm.name,
-      sex: newChildForm.sex || undefined,
-      avatarEmoji: '🧒',
-      avatarColor: '#FF6B6B',
-      classe: newChildForm.classe || undefined,
-      birthDate: newChildForm.birthDate || undefined,
-      photoUrl: newChildForm.photoUrl || undefined,
-    })
-    if (newChildForm.photoUrl && res.data?.id) setChildPhoto(res.data.id, newChildForm.photoUrl)
-    setNewChildForm({ name: '', sex: '', classe: '', birthDate: '', photoUrl: '' })
-    setShowAddChild(false)
-    fetchChildren()
+    try {
+      const res = await api.post('/children', {
+        name: newChildForm.name,
+        sex: newChildForm.sex || undefined,
+        avatarEmoji: '🧒',
+        avatarColor: '#FF6B6B',
+        classe: newChildForm.classe || undefined,
+        birthDate: newChildForm.birthDate || undefined,
+        photoUrl: newChildForm.photoUrl || undefined,
+      })
+      if (newChildForm.photoUrl && res.data?.id) setChildPhoto(res.data.id, newChildForm.photoUrl)
+      setNewChildForm({ name: '', sex: '', classe: '', birthDate: '', photoUrl: '' })
+      setShowAddChild(false)
+      fetchChildren()
+    } catch (err: any) {
+      if (err.response?.data?.limitReached) { setShowAddChild(false); setWatchAdType('children') }
+      else alert(err.response?.data?.error || t('common.error'))
+    }
   }
 
   const deleteChild = async (childId: string) => {
@@ -596,7 +600,7 @@ export default function ParentView() {
       setRewardPanelMode('presets')
       if (activeId) fetchRewards(activeId)
     } catch (err: any) {
-      if (err.response?.data?.upgrade) { setShowRewardPanel(false); setShowUpgrade(true) }
+      if (err.response?.data?.limitReached) { setShowRewardPanel(false); setWatchAdType('rewards') }
       else alert(err.response?.data?.error || t('common.error'))
     }
   }
@@ -700,6 +704,7 @@ export default function ParentView() {
                   defaultValues={presetDefaults ?? undefined}
                   onSave={() => { closeSuggestions(); fetchChildren() }}
                   onCancel={() => { setShowCustomForm(false); setPresetDefaults(null) }}
+                  onLimitReached={() => { closeSuggestions(); setWatchAdType('habits') }}
                 />
               </div>
             ) : (
@@ -1526,12 +1531,10 @@ export default function ParentView() {
         <div className="flex-1">
           <p className="font-black text-gray-800">{user?.name}</p>
           <p className="text-sm text-gray-400">{user?.email}</p>
-          {isPremium && <span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full">{t('profile.premium_badge')}</span>}
         </div>
-        {!isPremium && (
-          <button onClick={() => setShowUpgrade(true)}
-            className="bg-gradient-to-r from-kids-orange to-yellow-400 text-white font-bold px-3 py-2 rounded-xl text-xs">
-            ⭐ Premium
+        {(<button onClick={() => setWatchAdType('habits')}
+            className="bg-gradient-to-r from-kids-teal to-teal-400 text-white font-bold px-3 py-2 rounded-xl text-xs">
+            ▶️ Débloquer
           </button>
         )}
       </div>
@@ -1540,7 +1543,7 @@ export default function ParentView() {
       {activeChild && (
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <p className="px-4 pt-4 font-black text-gray-700 text-sm">{t('profile.stats')}</p>
-          <StatsView childId={activeChild.id} childName={activeChild.name} isPremium={isPremium} onUpgrade={() => setShowUpgrade(true)} />
+          <StatsView childId={activeChild.id} childName={activeChild.name} />
         </div>
       )}
 
@@ -1663,8 +1666,14 @@ export default function ParentView() {
 
   // ── Main render ──────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
+    <div className="min-h-screen bg-gray-50 pb-36">
+      {watchAdType && (
+        <WatchAdModal
+          type={watchAdType}
+          onClose={() => setWatchAdType(null)}
+          onUnlocked={() => fetchChildren()}
+        />
+      )}
       <SuggestionsPanel />
 
       {/* Hamburger panel */}
@@ -1677,7 +1686,6 @@ export default function ParentView() {
               <div className="p-6 bg-kids-orange">
                 <p className="text-white/80 text-sm font-semibold">{greeting()} 👋</p>
                 <p className="text-white font-black text-xl">{user?.name}</p>
-                {isPremium && <span className="text-xs bg-white/20 text-white font-bold px-2 py-0.5 rounded-full mt-1 inline-block">{t('profile.premium_badge')}</span>}
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Enfants */}
@@ -1724,13 +1732,6 @@ export default function ParentView() {
                     <span className="text-xl">👤</span>
                     <span className="font-bold text-gray-700">{t('parent.my_profile')}</span>
                   </button>
-                  {!isPremium && (
-                    <button onClick={() => { setShowUpgrade(true); setShowHamburger(false) }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50 text-left">
-                      <span className="text-xl">⭐</span>
-                      <span className="font-bold text-yellow-600">{t('parent.go_premium')}</span>
-                    </button>
-                  )}
                 </div>
               </div>
               <div className="p-4 border-t border-gray-100">

@@ -28,9 +28,10 @@ export default async function rewardsRoutes(app: FastifyInstance) {
     })
     if (!child) return reply.code(403).send({ error: 'Non autorisé' })
     const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
-    if (user?.plan === 'FREE') {
-      const count = await app.prisma.reward.count({ where: { childId: body.childId } })
-      if (count >= 3) return reply.code(403).send({ error: 'Maximum 3 récompenses en plan gratuit', upgrade: true })
+    const maxRewards = 5 + (user?.extraRewards ?? 0)
+    const count = await app.prisma.reward.count({ where: { childId: body.childId } })
+    if (count >= maxRewards) {
+      return reply.code(403).send({ error: 'Limite de récompenses atteinte', limitReached: true, type: 'rewards' })
     }
     return app.prisma.reward.create({ data: body })
   })

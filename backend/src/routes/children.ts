@@ -27,9 +27,10 @@ export default async function childrenRoutes(app: FastifyInstance) {
 
   app.post('/', async (request, reply) => {
     const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
+    const maxChildren = 1 + (user?.extraChildren ?? 0)
     const childCount = await app.prisma.child.count({ where: { userId: request.userId } })
-    if (user?.plan === 'FREE' && childCount >= 1) {
-      return reply.code(403).send({ error: 'Passez au plan Premium pour ajouter plusieurs enfants' })
+    if (childCount >= maxChildren) {
+      return reply.code(403).send({ error: 'Limite d\'enfants atteinte', limitReached: true, type: 'children' })
     }
     const body = childSchema.parse(request.body)
     return app.prisma.child.create({
