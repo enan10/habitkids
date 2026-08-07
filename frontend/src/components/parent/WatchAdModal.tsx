@@ -70,12 +70,8 @@ export default function WatchAdModal({ type, onClose, onUnlocked }: Props) {
         onUnlocked()
         onClose()
       }, 1800)
-    } catch (e: any) {
-      if (e?.response?.status === 429) {
-        setError('Limite journalière atteinte (3 vidéos/jour). Revenez demain !')
-      } else {
-        setError('Une erreur est survenue. Réessayez.')
-      }
+    } catch {
+      setError('Une erreur est survenue. Réessayez.')
       setLoading(false)
     }
   }
@@ -110,11 +106,7 @@ export default function WatchAdModal({ type, onClose, onUnlocked }: Props) {
                   <p className="text-xs text-gray-400 mt-1">Débloqué définitivement sur votre compte</p>
                 </div>
 
-                <div className="text-xs text-gray-400 text-center">
-                  Maximum 3 vidéos par jour
-                </div>
-
-                {error && <p className="text-red-500 text-sm font-bold text-center">{error}</p>}
+                {error &&<p className="text-red-500 text-sm font-bold text-center">{error}</p>}
 
                 <motion.button
                   whileTap={{ scale: 0.97 }}
