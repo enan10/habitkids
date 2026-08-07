@@ -75,7 +75,7 @@ export default async function adsRoutes(app: FastifyInstance) {
     return {
       maxChildren: 1 + user.extraChildren,
       maxHabits: 5 + user.extraHabits,
-      maxRewards: 5 + user.extraRewards,
+      maxRewards: 1 + user.extraRewards,
       extraChildren: user.extraChildren,
       extraHabits: user.extraHabits,
       extraRewards: user.extraRewards,

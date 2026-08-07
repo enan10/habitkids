@@ -22,7 +22,7 @@ const CONFIG: Record<AdType, { emoji: string; title: string; gain: string; color
   rewards: {
     emoji: '🎁',
     title: 'Limite de récompenses atteinte',
-    gain: '+5 récompenses débloquées',
+    gain: '+1 récompense débloquée',
     color: 'from-kids-orange to-yellow-400',
   },
   children: {
@@ -44,6 +44,7 @@ export default function WatchAdModal({ type, onClose, onUnlocked }: Props) {
   const handleWatchAd = async () => {
     setLoading(true)
     setError('')
+
     try {
       const watched = await showRewardedAd()
       if (!watched) {
@@ -52,11 +53,9 @@ export default function WatchAdModal({ type, onClose, onUnlocked }: Props) {
         return
       }
 
-      // Notifier le backend
       const res = await api.post('/ads/reward', { type })
       const data = res.data
 
-      // Mettre à jour le store
       if (user) {
         setUser({
           ...user,

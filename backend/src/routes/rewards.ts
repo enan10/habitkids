@@ -28,7 +28,7 @@ export default async function rewardsRoutes(app: FastifyInstance) {
     })
     if (!child) return reply.code(403).send({ error: 'Non autorisé' })
     const user = await app.prisma.user.findUnique({ where: { id: request.userId } })
-    const maxRewards = 5 + (user?.extraRewards ?? 0)
+    const maxRewards = 1 + (user?.extraRewards ?? 0)
     const count = await app.prisma.reward.count({ where: { childId: body.childId } })
     if (count >= maxRewards) {
       return reply.code(403).send({ error: 'Limite de récompenses atteinte', limitReached: true, type: 'rewards' })
